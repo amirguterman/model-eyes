@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Structured UI Example</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .container {
+      border: 1px solid #ccc;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f8f8f8;
+      border-radius: 4px;
+      white-space: pre-wrap;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ccc;
+    }
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    
+    .tab.active {
+      background-color: #f0f0f0;
+      border-color: #ccc;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>MCP Structured UI Example</h1>
+  
+  <div class="tabs">
+    <div class="tab active" data-tab="demo">Demo</div>
+    <div class="tab" data-tab="state">UI State</div>
+    <div class="tab" data-tab="actions">Actions</div>
+  </div>
+  
+  <div class="tab-content active" id="demo-tab">
+    <div class="container">
+      <h2>Sample Form</h2>
+      <form id="sample-form">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name" placeholder="Enter your name">
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="country">Country:</label>
+          <select id="country" name="country">
+            <option value="">Select a country</option>
+            <option value="us">United States</option>
+            <option value="ca">Canada</option>
+            <option value="uk">United Kingdom</option>
+            <option value="au">Australia</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="message">Message:</label>
+          <textarea id="message" name="message" rows="4" placeholder="Enter your message"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="subscribe" name="subscribe">
+            Subscribe to newsletter
+          </label>
+        </div>
+        
+        <button type="submit" id="submit-button">Submit</button>
+        <button type="button" id="reset-button">Reset</button>
+      </form>
+    </div>
+    
+    <div class="container">
+      <h2>MCP Interaction</h2>
+      <div class="form-group">
+        <label for="user-query">Enter a query:</label>
+        <input type="text" id="user-query" placeholder="E.g., 'Fill in the form with my information'">
+      </div>
+      
+      <button id="process-query">Process Query</button>
+      <button id="capture-state">Capture UI State</button>
+      
+      <div class="result" id="query-result">Results will appear here...</div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="state-tab">
+    <div class="container">
+      <h2>Current UI State</h2>
+      <button id="refresh-state">Refresh</button>
+      <div class="result" id="state-result">Capture the UI state to see the structured representation...</div>
+    </div>
+  </div>
+  
+  <div class="tab-content" id="actions-tab">
+    <div class="container">
+      <h2>Available Actions</h2>
+      <div class="form-group">
+        <label for="action-type">Action Type:</label>
+        <select id="action-type">
+          <option value="click">Click</option>
+          <option value="type">Type</option>
+          <option value="focus">Focus</option>
+          <option value="scroll">Scroll</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="target-element">Target Element:</label>
+        <select id="target-element">
+          <option value="">Select after capturing state</option>
+        </select>
+      </div>
+      
+      <div class="form-group" id="type-data-group" style="display: none;">
+        <label for="type-data">Text to Type:</label>
+        <input type="text" id="type-data" placeholder="Enter text to type">
+      </div>
+      
+      <button id="execute-action">Execute Action</button>
+      
+      <div class="result" id="action-result">Action results will appear here...</div>
+    </div>
+  </div>
+  
+  <script src="./web-example.ts"></script>
+  <script>
+    // Tab switching functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and tab contents
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        tab.classList.add('active');
+        const tabId = `${tab.dataset.tab}-tab`;
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Form submission
+    document.getElementById('sample-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      alert('Form submitted!');
+    });
+    
+    // Reset button
+    document.getElementById('reset-button').addEventListener('click', () => {
+      document.getElementById('sample-form').reset();
+    });
+    
+    // Initialize MCP when the script is loaded
+    let mcpIntegration = null;
+    
+    // This would be replaced by the actual integration in a real application
+    async function initializeMCP() {
+      try {
+        console.log('Initializing MCP...');
+        // In a real application, this would create an instance of MCPWebIntegration
+        // mcpIntegration = new MCPWebIntegration();
+        // await mcpIntegration.initialize();
+        
+        // For demo purposes, we'll just simulate the initialization
+        setTimeout(() => {
+          console.log('MCP initialized');
+          document.getElementById('query-result').textContent = 'MCP initialized successfully!';
+        }, 1000);
+      } catch (error) {
+        console.error('Error initializing MCP:', error);
+        document.getElementById('query-result').textContent = `Error: ${error.message}`;
+      }
+    }
+    
+    // Capture state button
+    document.getElementById('capture-state').addEventListener('click', async () => {
+      try {
+        document.getElementById('query-result').textContent = 'Capturing UI state...';
+        
+        // In a real application, this would call client.captureState()
+        // const state = await mcpIntegration.client.captureState();
+        
+        // For demo purposes, we'll just simulate the state capture
+        setTimeout(() => {
+          const sampleState = {
+            platform: 'web',
+            application: navigator.userAgent,
+            title: document.title,
+            url: window.location.href,
+            viewport: {
+              width: window.innerWidth,
+              height: window.innerHeight
+            },
+            elements: {
+              'form-1': {
+                id: 'form-1',
+                type: 'form',
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                children: ['name-1', 'email-1', 'country-1', 'message-1', 'subscribe-1', 'submit-1', 'reset-1']
+              },
+              'name-1': {
+                id: 'name-1',
+                type: 'input',
+                text: document.getElementById('name').value,
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true
+              },
+              'email-1': {
+                id: 'email-1',
+                type: 'input',
+                text: document.getElementById('email').value,
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true
+              },
+              'country-1': {
+                id: 'country-1',
+                type: 'select',
+                text: document.getElementById('country').value,
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true
+              },
+              'message-1': {
+                id: 'message-1',
+                type: 'textarea',
+                text: document.getElementById('message').value,
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true
+              },
+              'subscribe-1': {
+                id: 'subscribe-1',
+                type: 'checkbox',
+                text: '',
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true,
+                attributes: {
+                  checked: document.getElementById('subscribe').checked
+                }
+              },
+              'submit-1': {
+                id: 'submit-1',
+                type: 'button',
+                text: 'Submit',
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true
+              },
+              'reset-1': {
+                id: 'reset-1',
+                type: 'button',
+                text: 'Reset',
+                bounds: { x: 0, y: 0, width: 0, height: 0 },
+                interactable: true
+              }
+            }
+          };
+          
+          document.getElementById('query-result').textContent = 'UI state captured successfully!';
+          document.getElementById('state-result').textContent = JSON.stringify(sampleState, null, 2);
+          
+          // Populate the target element dropdown
+          const targetSelect = document.getElementById('target-element');
+          targetSelect.innerHTML = '';
+          
+          for (const [id, element] of Object.entries(sampleState.elements)) {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = `${element.type}: ${element.text || id}`;
+            targetSelect.appendChild(option);
+          }
+        }, 500);
+      } catch (error) {
+        console.error('Error capturing state:', error);
+        document.getElementById('query-result').textContent = `Error: ${error.message}`;
+      }
+    });
+    
+    // Process query button
+    document.getElementById('process-query').addEventListener('click', async () => {
+      try {
+        const query = document.getElementById('user-query').value;
+        
+        if (!query) {
+          alert('Please enter a query');
+          return;
+        }
+        
+        document.getElementById('query-result').textContent = `Processing query: "${query}"...`;
+        
+        // In a real application, this would call mcpIntegration.processQuery(query)
+        // const action = await mcpIntegration.processQuery(query);
+        // const result = await mcpIntegration.executeAction(action);
+        
+        // For demo purposes, we'll just simulate the query processing
+        setTimeout(() => {
+          const action = {
+            type: 'type',
+            targetId: 'name-1',
+            data: 'John Doe'
+          };
+          
+          document.getElementById('query-result').textContent = `Generated action: ${action.type} on element ${action.targetId} with data ${JSON.stringify(action.data)}`;
+          
+          // Simulate executing the action
+          if (action.type === 'type' && action.targetId === 'name-1') {
+            document.getElementById('name').value = action.data;
+          }
+        }, 1000);
+      } catch (error) {
+        console.error('Error processing query:', error);
+        document.getElementById('query-result').textContent = `Error: ${error.message}`;
+      }
+    });
+    
+    // Execute action button
+    document.getElementById('execute-action').addEventListener('click', async () => {
+      try {
+        const actionType = document.getElementById('action-type').value;
+        const targetId = document.getElementById('target-element').value;
+        let data = null;
+        
+        if (actionType === 'type') {
+          data = document.getElementById('type-data').value;
+        }
+        
+        if (!targetId) {
+          alert('Please select a target element');
+          return;
+        }
+        
+        document.getElementById('action-result').textContent = `Executing ${actionType} on ${targetId}...`;
+        
+        // In a real application, this would call mcpIntegration.executeAction(action)
+        // const result = await mcpIntegration.executeAction({ type: actionType, targetId, data });
+        
+        // For demo purposes, we'll just simulate the action execution
+        setTimeout(() => {
+          let success = false;
+          
+          // Simulate the action based on the target
+          if (targetId === 'name-1' && actionType === 'type') {
+            document.getElementById('name').value = data;
+            success = true;
+          } else if (targetId === 'email-1' && actionType === 'type') {
+            document.getElementById('email').value = data;
+            success = true;
+          } else if (targetId === 'message-1' && actionType === 'type') {
+            document.getElementById('message').value = data;
+            success = true;
+          } else if (targetId === 'submit-1' && actionType === 'click') {
+            alert('Form submitted!');
+            success = true;
+          } else if (targetId === 'reset-1' && actionType === 'click') {
+            document.getElementById('sample-form').reset();
+            success = true;
+          } else if (actionType === 'focus') {
+            if (targetId === 'name-1') document.getElementById('name').focus();
+            else if (targetId === 'email-1') document.getElementById('email').focus();
+            else if (targetId === 'country-1') document.getElementById('country').focus();
+            else if (targetId === 'message-1') document.getElementById('message').focus();
+            else if (targetId === 'subscribe-1') document.getElementById('subscribe').focus();
+            success = true;
+          }
+          
+          if (success) {
+            document.getElementById('action-result').textContent = 'Action executed successfully!';
+          } else {
+            document.getElementById('action-result').textContent = 'Action execution failed. This action is not supported for the selected element.';
+          }
+        }, 500);
+      } catch (error) {
+        console.error('Error executing action:', error);
+        document.getElementById('action-result').textContent = `Error: ${error.message}`;
+      }
+    });
+    
+    // Show/hide type data input based on action type
+    document.getElementById('action-type').addEventListener('change', () => {
+      const actionType = document.getElementById('action-type').value;
+      const typeDataGroup = document.getElementById('type-data-group');
+      
+      if (actionType === 'type') {
+        typeDataGroup.style.display = 'block';
+      } else {
+        typeDataGroup.style.display = 'none';
+      }
+    });
+    
+    // Refresh state button
+    document.getElementById('refresh-state').addEventListener('click', () => {
+      document.getElementById('capture-state').click();
+    });
+    
+    // Initialize MCP when the page loads
+    window.addEventListener('DOMContentLoaded', initializeMCP);
+  </script>
+</body>
+</html>
