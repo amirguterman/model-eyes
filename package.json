@@ -15,9 +15,9 @@
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "node tests/basic-test.js",
+    "test:jest": "jest --passWithNoTests",
     "clean": "rimraf dist",
     "lint": "eslint src --ext .ts",
-    "test": "jest",
     "docs": "typedoc --out docs/api src",
     "start:web-example": "parcel examples/web-example.html",
     "build:web-example": "parcel build examples/web-example.html"
