@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ModelEyes UI Visualizer</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #212529;
+            background-color: #f8f9fa;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 300px;
+            background-color: #fff;
+            border-right: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .toolbar {
+            padding: 10px;
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+        }
+        .visualization-area {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background-color: #f0f0f0;
+        }
+        .element-tree {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+        }
+        .element-details {
+            height: 300px;
+            overflow: auto;
+            padding: 10px;
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+        .status-bar {
+            padding: 5px 10px;
+            background-color: #343a40;
+            color: #fff;
+            font-size: 12px;
+        }
+        .tree-item {
+            margin: 2px 0;
+            cursor: pointer;
+        }
+        .tree-item-header {
+            display: flex;
+            align-items: center;
+            padding: 3px 5px;
+            border-radius: 3px;
+        }
+        .tree-item-header:hover {
+            background-color: #f0f0f0;
+        }
+        .tree-item-header.selected {
+            background-color: #4a6ee0;
+            color: white;
+        }
+        .tree-item-children {
+            margin-left: 20px;
+        }
+        .element-visualization {
+            position: absolute;
+            box-sizing: border-box;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            background-color: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+        .element-visualization.interactable {
+            border-color: #4a6ee0;
+            background-color: rgba(74, 110, 224, 0.1);
+        }
+        .element-visualization.selected {
+            border: 2px solid #4a6ee0;
+            background-color: rgba(74, 110, 224, 0.2);
+            z-index: 1000;
+        }
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            border: 1px solid transparent;
+            padding: 5px 10px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-primary {
+            color: #fff;
+            background-color: #4a6ee0;
+            border-color: #4a6ee0;
+        }
+        .btn-secondary {
+            color: #fff;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .form-control {
+            display: block;
+            width: 100%;
+            padding: 5px 10px;
+            font-size: 14px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .toolbar-spacer {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="element-tree" id="elementTree">
+                <!-- Element tree will be rendered here -->
+            </div>
+            <div class="element-details" id="elementDetails">
+                <!-- Selected element details will be shown here -->
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="toolbar">
+                <button class="btn btn-primary" id="loadStateBtn">Load State</button>
+                <button class="btn btn-secondary" id="loadUpdateBtn">Load Update</button>
+                <div class="toolbar-spacer"></div>
+                <div style="display: inline-block; margin-right: 10px;">
+                    <select class="form-control" id="viewMode">
+                        <option value="normal">Normal View</option>
+                        <option value="interactable">Highlight Interactable</option>
+                        <option value="hierarchy">Show Hierarchy</option>
+                        <option value="diff">Show Diff</option>
+                    </select>
+                </div>
+            </div>
+            <div class="visualization-area" id="visualizationArea">
+                <!-- UI elements will be visualized here -->
+            </div>
+            <div class="status-bar" id="statusBar">
+                Ready
+            </div>
+        </div>
+    </div>
+
+    <!-- File Load Modal -->
+    <div id="fileLoadModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 5px; width: 500px;">
+            <h3>Load UI State</h3>
+            <div>
+                <label>Paste JSON or select a file:</label>
+                <textarea class="form-control" id="jsonInput" rows="10"></textarea>
+            </div>
+            <div style="margin-top: 10px;">
+                <input type="file" id="fileInput" accept=".json">
+            </div>
+            <div style="text-align: right; margin-top: 10px;">
+                <button class="btn btn-secondary" id="cancelLoadBtn">Cancel</button>
+                <button class="btn btn-primary" id="confirmLoadBtn">Load</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Main application state
+        const app = {
+            currentState: null,
+            currentUpdate: null,
+            selectedElementId: null,
+            viewMode: 'normal'
+        };
+
+        // DOM Elements
+        const elementTree = document.getElementById('elementTree');
+        const elementDetails = document.getElementById('elementDetails');
+        const visualizationArea = document.getElementById('visualizationArea');
+        const statusBar = document.getElementById('statusBar');
+        const viewModeSelect = document.getElementById('viewMode');
+        const loadStateBtn = document.getElementById('loadStateBtn');
+        const loadUpdateBtn = document.getElementById('loadUpdateBtn');
+        const fileLoadModal = document.getElementById('fileLoadModal');
+        const jsonInput = document.getElementById('jsonInput');
+        const fileInput = document.getElementById('fileInput');
+        const cancelLoadBtn = document.getElementById('cancelLoadBtn');
+        const confirmLoadBtn = document.getElementById('confirmLoadBtn');
+
+        // Event Listeners
+        loadStateBtn.addEventListener('click', () => showFileLoadModal('state'));
+        loadUpdateBtn.addEventListener('click', () => showFileLoadModal('update'));
+        cancelLoadBtn.addEventListener('click', hideFileLoadModal);
+        confirmLoadBtn.addEventListener('click', handleFileLoad);
+        fileInput.addEventListener('change', handleFileSelect);
+        viewModeSelect.addEventListener('change', () => {
+            app.viewMode = viewModeSelect.value;
+            renderVisualization();
+        });
+
+        // Functions
+        function showFileLoadModal(type) {
+            app.loadingType = type;
+            fileLoadModal.style.display = 'block';
+            jsonInput.value = '';
+            fileInput.value = '';
+        }
+
+        function hideFileLoadModal() {
+            fileLoadModal.style.display = 'none';
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    jsonInput.value = event.target.result;
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function handleFileLoad() {
+            try {
+                const jsonData = JSON.parse(jsonInput.value);
+                
+                if (app.loadingType === 'state') {
+                    app.currentState = jsonData;
+                    app.selectedElementId = null;
+                    renderElementTree();
+                    renderVisualization();
+                    updateStatusBar(`Loaded UI state with ${Object.keys(app.currentState.elements).length} elements`);
+                } else if (app.loadingType === 'update') {
+                    if (!app.currentState) {
+                        alert('Please load a UI state first before loading an update.');
+                        return;
+                    }
+                    app.currentUpdate = jsonData;
+                    applyUpdate();
+                    renderElementTree();
+                    renderVisualization();
+                    updateStatusBar(`Applied update: ${app.currentUpdate.added ? Object.keys(app.currentUpdate.added).length : 0} added, ${app.currentUpdate.modified ? Object.keys(app.currentUpdate.modified).length : 0} modified, ${app.currentUpdate.removed ? app.currentUpdate.removed.length : 0} removed`);
+                }
+                
+                hideFileLoadModal();
+            } catch (error) {
+                alert(`Error parsing JSON: ${error.message}`);
+            }
+        }
+
+        function applyUpdate() {
+            if (!app.currentState || !app.currentUpdate) return;
+            
+            // Create a deep copy of the current state
+            const newState = JSON.parse(JSON.stringify(app.currentState));
+            
+            // Apply added elements
+            if (app.currentUpdate.added) {
+                for (const [id, element] of Object.entries(app.currentUpdate.added)) {
+                    newState.elements[id] = element;
+                }
+            }
+            
+            // Apply modified elements
+            if (app.currentUpdate.modified) {
+                for (const [id, changes] of Object.entries(app.currentUpdate.modified)) {
+                    if (newState.elements[id]) {
+                        Object.assign(newState.elements[id], changes);
+                    }
+                }
+            }
+            
+            // Apply removed elements
+            if (app.currentUpdate.removed) {
+                for (const id of app.currentUpdate.removed) {
+                    delete newState.elements[id];
+                }
+            }
+            
+            // Update focus and hover
+            if (app.currentUpdate.focus !== undefined) {
+                newState.focus = app.currentUpdate.focus || undefined;
+            }
+            
+            if (app.currentUpdate.hover !== undefined) {
+                newState.hover = app.currentUpdate.hover || undefined;
+            }
+            
+            // Update version and timestamp
+            newState.version = app.currentUpdate.version;
+            newState.timestamp = app.currentUpdate.timestamp;
+            
+            app.currentState = newState;
+        }
+
+        function renderElementTree() {
+            if (!app.currentState) return;
+            
+            // Build element hierarchy
+            const hierarchy = buildElementHierarchy(app.currentState.elements);
+            
+            // Render the tree
+            elementTree.innerHTML = '';
+            renderTreeNode(hierarchy, elementTree);
+        }
+
+        function buildElementHierarchy(elements) {
+            const rootElements = [];
+            const elementMap = new Map();
+            
+            // First pass: create element nodes
+            for (const [id, element] of Object.entries(elements)) {
+                elementMap.set(id, {
+                    element,
+                    children: []
+                });
+            }
+            
+            // Second pass: build hierarchy
+            for (const [id, node] of elementMap.entries()) {
+                const element = node.element;
+                
+                if (element.parent && elementMap.has(element.parent)) {
+                    // Add as child to parent
+                    elementMap.get(element.parent).children.push(node);
+                } else {
+                    // No parent or parent not found, add to root
+                    rootElements.push(node);
+                }
+            }
+            
+            return rootElements;
+        }
+
+        function renderTreeNode(nodes, container) {
+            nodes.forEach(node => {
+                const element = node.element;
+                const hasChildren = node.children.length > 0;
+                
+                const treeItem = document.createElement('div');
+                treeItem.className = 'tree-item';
+                
+                const header = document.createElement('div');
+                header.className = 'tree-item-header';
+                if (element.id === app.selectedElementId) {
+                    header.classList.add('selected');
+                }
+                
+                const label = document.createElement('span');
+                label.textContent = `${element.type} ${element.text ? `"${element.text.substring(0, 20)}"` : ''}`;
+                
+                header.appendChild(label);
+                
+                header.addEventListener('click', () => {
+                    selectElement(element.id);
+                });
+                
+                treeItem.appendChild(header);
+                
+                if (hasChildren) {
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'tree-item-children';
+                    
+                    renderTreeNode(node.children, childrenContainer);
+                    
+                    treeItem.appendChild(childrenContainer);
+                }
+                
+                container.appendChild(treeItem);
+            });
+        }
+
+        function selectElement(id) {
+            app.selectedElementId = id;
+            
+            // Update tree selection
+            const headers = document.querySelectorAll('.tree-item-header');
+            headers.forEach(header => header.classList.remove('selected'));
+            
+            const selectedHeaders = document.querySelectorAll(`.tree-item-header`);
+            for (const header of selectedHeaders) {
+                if (header.textContent.includes(id)) {
+                    header.classList.add('selected');
+                    break;
+                }
+            }
+            
+            // Show element details
+            renderElementDetails();
+            
+            // Update visualization
+            renderVisualization();
+        }
+
+        function renderElementDetails() {
+            if (!app.currentState || !app.selectedElementId) {
+                elementDetails.innerHTML = '<p>No element selected</p>';
+                return;
+            }
+            
+            const element = app.currentState.elements[app.selectedElementId];
+            if (!element) {
+                elementDetails.innerHTML = '<p>Selected element not found</p>';
+                return;
+            }
+            
+            // Format element details as JSON
+            const detailsJson = JSON.stringify(element, null, 2);
+            elementDetails.innerHTML = `<pre>${detailsJson}</pre>`;
+        }
+
+        function renderVisualization() {
+            if (!app.currentState) return;
+            
+            visualizationArea.innerHTML = '';
+            
+            // Create a container for the visualization
+            const container = document.createElement('div');
+            container.id = 'visualizationContainer';
+            container.style.position = 'relative';
+            container.style.width = `${app.currentState.viewport.width}px`;
+            container.style.height = `${app.currentState.viewport.height}px`;
+            
+            // Render elements
+            for (const [id, element] of Object.entries(app.currentState.elements)) {
+                if (element.visible === false) continue;
+                
+                const elementDiv = document.createElement('div');
+                elementDiv.className = 'element-visualization';
+                if (element.interactable) {
+                    elementDiv.classList.add('interactable');
+                }
+                if (id === app.selectedElementId) {
+                    elementDiv.classList.add('selected');
+                }
+                
+                elementDiv.style.left = `${element.bounds.x}px`;
+                elementDiv.style.top = `${element.bounds.y}px`;
+                elementDiv.style.width = `${element.bounds.width}px`;
+                elementDiv.style.height = `${element.bounds.height}px`;
+                
+                elementDiv.addEventListener('click', () => {
+                    selectElement(id);
+                });
+                
+                container.appendChild(elementDiv);
+            }
+            
+            visualizationArea.appendChild(container);
+        }
+
+        function updateStatusBar(message) {
+            statusBar.textContent = message;
+        }
+    </script>
+</body>
+</html>
