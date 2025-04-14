@@ -1,5 +1,7 @@
 import { Action, ContextOptions, DifferentialUpdate, MCPServerConfig, ModelContext, UIState } from '../common/types';
 import { BaseMCPServer } from './base-server';
+import { UIStateCache } from '../common/cache';
+import { compressState, filterElements } from '../common/optimization';
 
 /**
  * Configuration options specific to OpenAI models
@@ -31,6 +33,16 @@ export class OpenAIMCPServer extends BaseMCPServer {
   
   /** Maximum tokens for model generation */
   private maxTokens = 1000;
+  
+  /** State cache for efficient context management */
+  private stateCache: UIStateCache = new UIStateCache(10);
+  
+  /** Token usage statistics */
+  private tokenUsageStats = {
+    average: 0,
+    max: 0,
+    count: 0
+  };
   
   /**
    * Initialize the model provider
@@ -67,6 +79,10 @@ export class OpenAIMCPServer extends BaseMCPServer {
       }
     }
     
+    // Initialize state cache with configuration
+    const maxHistoryStates = config.contextManagement?.maxHistoryStates || 10;
+    this.stateCache = new UIStateCache(maxHistoryStates);
+    
     // Validate API key (could make a test request here)
     console.log(`Initialized OpenAI server with model ${this.model}`);
   }
@@ -83,12 +99,26 @@ export class OpenAIMCPServer extends BaseMCPServer {
     // Apply OpenAI-specific optimizations
     const maxTokens = options?.maxTokens ?? this.maxTokens;
     
-    // If the context is too large, simplify it further
+    // Apply compression to reduce token usage
+    const compressedState = compressState(baseContext.uiState);
+    baseContext.uiState = compressedState;
+    
+    // Update token count after compression
+    baseContext.tokenCount = this.estimateTokenCount(compressedState);
+    
+    // If the context is still too large, simplify it further
     if (baseContext.tokenCount > maxTokens) {
       // Simplify by removing less important elements
       const simplifiedContext = this.simplifyContextForTokenLimit(baseContext, maxTokens);
+      
+      // Track token usage statistics
+      this.updateTokenUsageStats(simplifiedContext.tokenCount);
+      
       return simplifiedContext;
     }
+    
+    // Track token usage statistics
+    this.updateTokenUsageStats(baseContext.tokenCount);
     
     return baseContext;
   }
@@ -105,6 +135,19 @@ export class OpenAIMCPServer extends BaseMCPServer {
       ...context,
       uiState: { ...context.uiState }
     };
+    
+    // Apply more aggressive filtering
+    const filteredState = filterElements(simplifiedContext.uiState, {
+      maxElements: 50, // Limit to 50 elements
+      prioritizeInteractable: true,
+      prioritizeVisible: true,
+      excludeTypes: ['script', 'style', 'meta', 'link', 'noscript']
+    });
+    
+    simplifiedContext.uiState = filteredState;
+    
+    // Update token count after filtering
+    let currentTokenCount = this.estimateTokenCount(filteredState);
     
     // Get the elements
     const elements = simplifiedContext.uiState.elements;
@@ -135,10 +178,10 @@ export class OpenAIMCPServer extends BaseMCPServer {
       return 0;
     });
     
-    // Remove elements until we're under the token limit
+    // If still too large, remove elements until we're under the token limit
     const newElements: Record<string, any> = {};
-    let currentTokenCount = context.tokenCount;
     
+    // Only keep the most important elements
     for (const id of sortedElementIds) {
       const element = elements[id];
       
@@ -146,10 +189,27 @@ export class OpenAIMCPServer extends BaseMCPServer {
       const elementJson = JSON.stringify(element);
       const elementTokens = Math.ceil(elementJson.length / 4);
       
-      // If adding this element would exceed the token limit, skip it
-      if (currentTokenCount - elementTokens < maxTokens) {
+      // If adding this element would keep us under the token limit, include it
+      if (currentTokenCount + elementTokens <= maxTokens) {
         newElements[id] = element;
-        currentTokenCount -= elementTokens;
+        currentTokenCount += elementTokens;
+      } else {
+        // If it's an interactable element, try to include a simplified version
+        if (element.interactable) {
+          const simplifiedElement = {
+            id: element.id,
+            type: element.type,
+            text: element.text,
+            interactable: true
+          };
+          
+          const simplifiedTokens = Math.ceil(JSON.stringify(simplifiedElement).length / 4);
+          
+          if (currentTokenCount + simplifiedTokens <= maxTokens) {
+            newElements[id] = simplifiedElement;
+            currentTokenCount += simplifiedTokens;
+          }
+        }
       }
     }
     
@@ -171,8 +231,13 @@ export class OpenAIMCPServer extends BaseMCPServer {
     // Convert the value to a string
     const json = JSON.stringify(value);
     
-    // Estimate token count (roughly 4 characters per token)
-    return Math.ceil(json.length / 4);
+    // More accurate token estimation for OpenAI models
+    // GPT models use byte-pair encoding, which is roughly 0.75 tokens per word
+    // For JSON, we can estimate about 1 token per 4 characters
+    const charCount = json.length;
+    const wordCount = json.split(/\s+/).length;
+    
+    return Math.ceil((charCount / 4) + (wordCount * 0.75));
   }
   
   /**
@@ -282,9 +347,60 @@ export class OpenAIMCPServer extends BaseMCPServer {
   /**
    * Clean up model provider resources
    */
+  /**
+   * Update token usage statistics
+   * @param tokenCount Token count to track
+   */
+  private updateTokenUsageStats(tokenCount: number): void {
+    // Update maximum
+    if (tokenCount > this.tokenUsageStats.max) {
+      this.tokenUsageStats.max = tokenCount;
+    }
+    
+    // Update average
+    const totalCount = this.tokenUsageStats.average * this.tokenUsageStats.count;
+    this.tokenUsageStats.count++;
+    this.tokenUsageStats.average = (totalCount + tokenCount) / this.tokenUsageStats.count;
+  }
+  
+  /**
+   * Get token usage statistics
+   * @returns Token usage statistics
+   */
+  getTokenUsageStats(): { average: number; max: number; count: number } {
+    return { ...this.tokenUsageStats };
+  }
+  
+  /**
+   * Process the initial UI state with OpenAI-specific optimizations
+   * @param state Initial UI state
+   */
+  override processInitialState(state: UIState): void {
+    // Call the parent implementation
+    super.processInitialState(state);
+    
+    // Add to state cache
+    this.stateCache.addState(state);
+  }
+  
+  /**
+   * Process a differential update with OpenAI-specific optimizations
+   * @param update Differential update
+   */
+  override processStateUpdate(update: DifferentialUpdate): void {
+    // Call the parent implementation
+    super.processStateUpdate(update);
+    
+    // Apply the update to the cached state
+    if (this.currentState) {
+      this.stateCache.applyUpdate(update.baseVersion, update);
+    }
+  }
+  
   protected disposeModelProvider(): void {
-    // No specific cleanup needed for OpenAI
+    // Clean up resources
     this.apiKey = null;
+    this.stateCache.clear();
   }
   
   /**

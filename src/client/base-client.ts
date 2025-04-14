@@ -5,6 +5,8 @@ import {
   ActionResult,
   Subscription
 } from '../common/types';
+import { UIStateCache, ElementCache } from '../common/cache';
+import { computeDiff } from '../common/optimization';
 
 /**
  * Base interface for all MCP client implementations
@@ -60,12 +62,24 @@ export abstract class BaseMCPClient implements IMCPClient {
   /** Last version identifier */
   protected lastVersion = '0';
   
+  /** State cache for storing and retrieving UI states */
+  protected stateCache: UIStateCache = new UIStateCache(10);
+  
+  /** Element cache for storing and retrieving UI elements */
+  protected elementCache: ElementCache = new ElementCache(1000);
+  
   /**
    * Initialize the client with the provided configuration
    * @param config Client configuration options
    */
   async initialize(config: MCPClientConfig): Promise<void> {
     this.config = config;
+    
+    // Reinitialize caches with configuration
+    const maxHistoryStates = config.optimization?.maxHistoryStates || 10;
+    this.stateCache = new UIStateCache(maxHistoryStates);
+    this.elementCache = new ElementCache(1000); // Default to 1000 elements
+    
     await this.initializePlatform();
   }
   
@@ -84,6 +98,14 @@ export abstract class BaseMCPClient implements IMCPClient {
     }
     
     const state = await this.capturePlatformState();
+    
+    // Cache the state
+    this.stateCache.addState(state);
+    
+    // Cache the elements
+    this.elementCache.addElements(state.elements);
+    
+    // Update current state and version
     this.currentState = state;
     this.lastVersion = state.version;
     
@@ -124,6 +146,11 @@ export abstract class BaseMCPClient implements IMCPClient {
       } catch (error) {
         console.error('Error in subscriber:', error);
       }
+    }
+    
+    // Apply the update to the cached state
+    if (this.stateCache && update.baseVersion) {
+      this.stateCache.applyUpdate(update.baseVersion, update);
     }
   }
   
@@ -168,6 +195,16 @@ export abstract class BaseMCPClient implements IMCPClient {
    */
   dispose(): void {
     this.subscribers = [];
+    
+    // Clear caches
+    if (this.stateCache) {
+      this.stateCache.clear();
+    }
+    
+    if (this.elementCache) {
+      this.elementCache.clear();
+    }
+    
     this.disposePlatformResources();
   }
   
@@ -184,5 +221,33 @@ export abstract class BaseMCPClient implements IMCPClient {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000);
     return `${timestamp}-${random}`;
+  }
+  
+  /**
+   * Get a cached UI state by version
+   * @param version Version to look up
+   * @returns UI state or undefined if not found
+   */
+  protected getCachedState(version: string): UIState | undefined {
+    return this.stateCache.getStateByVersion(version);
+  }
+  
+  /**
+   * Get a cached UI element by ID
+   * @param id Element ID to look up
+   * @returns UI element or undefined if not found
+   */
+  protected getCachedElement(id: string): any | undefined {
+    return this.elementCache.getElementById(id);
+  }
+  
+  /**
+   * Compute the difference between two UI states
+   * @param oldState Previous UI state
+   * @param newState Current UI state
+   * @returns Differential update containing only the changes
+   */
+  protected computeStateDiff(oldState: UIState, newState: UIState): DifferentialUpdate {
+    return computeDiff(oldState, newState);
   }
 }

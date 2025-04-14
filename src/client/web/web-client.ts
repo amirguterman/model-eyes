@@ -5,6 +5,7 @@ import {
   ActionResult,
   MCPClientConfig
 } from '../../common/types';
+import { computeDiff, compressState, filterElements } from '../../common/optimization';
 import { BaseMCPClient } from '../base-client';
 
 /**
@@ -22,6 +23,12 @@ export class WebMCPClient extends BaseMCPClient {
   
   /** Counter for generating unique element IDs */
   private idCounter = 0;
+  
+  /** Previous state for differential updates */
+  private previousState: UIState | null = null;
+  
+  /** Element hash cache for quick comparison */
+  private elementHashCache: Map<string, string> = new Map();
   
   /**
    * Platform-specific initialization
@@ -69,78 +76,40 @@ export class WebMCPClient extends BaseMCPClient {
       return;
     }
     
-    const added: Record<string, UIElement> = {};
-    const modified: Record<string, Partial<UIElement>> = {};
-    const removed: string[] = [];
-    
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList') {
-        // Handle added nodes
-        for (const node of Array.from(mutation.addedNodes)) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            const elementData = this.processElement(element);
-            if (elementData) {
-              added[elementData.id] = elementData;
-            }
-          }
-        }
-        
-        // Handle removed nodes
-        for (const node of Array.from(mutation.removedNodes)) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            const id = this.getElementId(element);
-            if (id) {
-              removed.push(id);
-              this.elementMap.delete(id);
-            }
-          }
-        }
-      } else if (mutation.type === 'attributes' || mutation.type === 'characterData') {
-        // Handle modified nodes
-        const target = mutation.target as Element;
-        const id = this.getElementId(target);
-        
-        if (id && this.currentState.elements[id]) {
-          const elementData = this.processElement(target);
-          if (elementData) {
-            modified[id] = {
-              attributes: elementData.attributes,
-              text: elementData.text,
-              bounds: elementData.bounds,
-              styles: elementData.styles
-            };
-          }
-        }
+    // Capture a new state after the mutations
+    this.capturePlatformState().then(newState => {
+      // If we don't have a previous state, just update and notify
+      if (!this.previousState) {
+        this.previousState = this.currentState;
+        this.currentState = newState;
+        this.lastVersion = newState.version;
+        return;
       }
-    }
-    
-    // Only create an update if there are changes
-    if (
-      Object.keys(added).length > 0 ||
-      Object.keys(modified).length > 0 ||
-      removed.length > 0
-    ) {
-      const newVersion = this.generateVersion();
       
-      const update: DifferentialUpdate = {
-        timestamp: Date.now(),
-        added: Object.keys(added).length > 0 ? added : undefined,
-        modified: Object.keys(modified).length > 0 ? modified : undefined,
-        removed: removed.length > 0 ? removed : undefined,
-        baseVersion: this.lastVersion,
-        version: newVersion
-      };
+      // Use the optimization utility to compute the diff
+      const update = computeDiff(this.previousState, newState);
       
-      // Update the current state with the changes
-      this.applyUpdate(update);
-      
-      // Notify subscribers
-      this.notifySubscribers(update);
-      
-      this.lastVersion = newVersion;
-    }
+      // Only notify if there are actual changes
+      if (
+        (update.added && Object.keys(update.added).length > 0) ||
+        (update.modified && Object.keys(update.modified).length > 0) ||
+        (update.removed && update.removed.length > 0) ||
+        update.focus !== undefined ||
+        update.hover !== undefined
+      ) {
+        // Apply the update to the current state
+        this.applyUpdate(update);
+        
+        // Notify subscribers
+        this.notifySubscribers(update);
+        
+        // Update version tracking
+        this.lastVersion = newState.version;
+        this.previousState = this.currentState;
+      }
+    }).catch(error => {
+      console.error('Error capturing state after mutations:', error);
+    });
   }
   
   /**
@@ -197,8 +166,11 @@ export class WebMCPClient extends BaseMCPClient {
       throw new Error('Root element not available');
     }
     
-    // Reset element map
-    this.elementMap.clear();
+    // Reset element map if needed
+    if (this.config?.optimization?.resetElementMapOnCapture) {
+      this.elementMap.clear();
+      this.elementHashCache.clear();
+    }
     
     // Process the DOM tree
     const elements: Record<string, UIElement> = {};
@@ -224,6 +196,33 @@ export class WebMCPClient extends BaseMCPClient {
       version: this.generateVersion()
     };
     
+    // Apply filtering if configured
+    if (this.config?.filtering) {
+      const filterOptions = {
+        maxElements: this.config.filtering.maxElements,
+        prioritizeInteractable: this.config.filtering.prioritizeInteractable !== false,
+        prioritizeVisible: this.config.filtering.prioritizeVisible !== false,
+        excludeTypes: this.config.filtering.excludeTypes,
+        includeTypes: this.config.filtering.includeTypes
+      };
+      
+      const filteredState = filterElements(state, filterOptions);
+      
+      // Update the elements map to match filtered elements
+      for (const id of Object.keys(state.elements)) {
+        if (!filteredState.elements[id]) {
+          this.elementMap.delete(id);
+        }
+      }
+      
+      state.elements = filteredState.elements;
+    }
+    
+    // Apply compression if configured
+    if (this.config?.optimization?.compress) {
+      return compressState(state);
+    }
+    
     return state;
   }
   
@@ -240,6 +239,31 @@ export class WebMCPClient extends BaseMCPClient {
     depth = 0,
     parentId?: string
   ): void {
+    // Handle iframes
+    if (element.tagName.toLowerCase() === 'iframe') {
+      try {
+        const iframe = element as HTMLIFrameElement;
+        
+        // Only process same-origin iframes
+        if (this.isSameOrigin(iframe.src)) {
+          const iframeDoc = iframe.contentDocument;
+          if (iframeDoc && iframeDoc.body) {
+            // Process the iframe's document
+            const iframeElementData = this.processElement(element, parentId);
+            if (iframeElementData) {
+              elements[iframeElementData.id] = iframeElementData;
+              
+              // Process the iframe's content
+              this.processElementTree(iframeDoc.body, elements, depth + 1, iframeElementData.id);
+            }
+            return;
+          }
+        }
+      } catch (error) {
+        // Cross-origin iframe access will throw an error
+        console.warn('Could not access iframe content:', error);
+      }
+    }
     // Check depth limit
     const maxDepth = this.config?.filtering?.maxDepth ?? 50;
     if (depth > maxDepth) {
@@ -504,6 +528,21 @@ export class WebMCPClient extends BaseMCPClient {
   /**
    * Platform-specific resource cleanup
    */
+  /**
+   * Check if a URL is from the same origin as the current page
+   * @param url URL to check
+   * @returns Whether the URL is from the same origin
+   */
+  private isSameOrigin(url: string): boolean {
+    try {
+      const currentOrigin = window.location.origin;
+      const urlOrigin = new URL(url, window.location.href).origin;
+      return currentOrigin === urlOrigin;
+    } catch (error) {
+      return false;
+    }
+  }
+  
   protected disposePlatformResources(): void {
     // Disconnect mutation observer
     if (this.mutationObserver) {

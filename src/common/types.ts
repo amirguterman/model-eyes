@@ -285,6 +285,21 @@ export interface MCPClientConfig {
     
     /** Whether to include invisible elements */
     includeInvisible?: boolean;
+    
+    /** Maximum number of elements to include */
+    maxElements?: number;
+    
+    /** Whether to prioritize interactable elements */
+    prioritizeInteractable?: boolean;
+    
+    /** Whether to prioritize visible elements */
+    prioritizeVisible?: boolean;
+    
+    /** Element types to exclude */
+    excludeTypes?: string[];
+    
+    /** Element types to include (takes precedence over excludeTypes) */
+    includeTypes?: string[];
   };
   
   /** Data optimization options */
@@ -294,6 +309,15 @@ export interface MCPClientConfig {
     
     /** Whether to use differential updates */
     useDifferentialUpdates?: boolean;
+    
+    /** Whether to reset the element map on each capture */
+    resetElementMapOnCapture?: boolean;
+    
+    /** Maximum number of states to keep in history */
+    maxHistoryStates?: number;
+    
+    /** Whether to use element hashing for faster comparisons */
+    useElementHashing?: boolean;
   };
 }
 
