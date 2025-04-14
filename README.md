@@ -191,6 +191,26 @@ npm run start:mcp-example
 - `ui-state://compressed` - Compressed current UI state
 - `ui-state://filtered` - Filtered UI state with only interactable elements
 
+### Browser Extension
+
+A Chrome extension is available for capturing UI states directly from web pages:
+
+![ModelEyes Chrome Extension](docs/images/chrome-extension.png)
+
+The extension allows you to:
+- Capture UI states from any web page
+- Send them directly to a ModelEyes MCP server
+- Choose between different capture modes (full page, viewport, element)
+- Configure server settings
+
+To install the extension in development mode:
+
+1. Navigate to `chrome://extensions/` in Chrome
+2. Enable "Developer mode"
+3. Click "Load unpacked" and select the `extensions/chrome` directory
+
+For more details, see the [extension README](extensions/chrome/README.md).
+
 ### Available MCP Tools
 
 - `captureWebState` - Capture UI state from a web page
@@ -310,6 +330,7 @@ For detailed documentation, see:
    - Semantic enrichment using local ML models
    - Optimize differential update algorithms
    - Develop fallback mechanisms for complex UIs
+   - Improve browser extension with additional features
 
 ## Contributing
 
