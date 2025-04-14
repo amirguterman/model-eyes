@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModelEyes UI Capture</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 300px;
+      padding: 15px;
+    }
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      color: #4a6ee0;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #4a6ee0;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #3a5bbf;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    .success {
+      color: #28a745;
+    }
+    .error {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <h1>ModelEyes UI Capture</h1>
+  
+  <div class="form-group">
+    <label for="server-url">MCP Server URL</label>
+    <input type="text" id="server-url" placeholder="http://localhost:3000" value="http://localhost:3000">
+  </div>
+  
+  <div class="form-group">
+    <label for="capture-mode">Capture Mode</label>
+    <select id="capture-mode">
+      <option value="full">Full Page</option>
+      <option value="viewport">Viewport Only</option>
+      <option value="element">Selected Element</option>
+    </select>
+  </div>
+  
+  <button id="capture-btn">Capture UI State</button>
+  
+  <div class="status" id="status" style="display: none;"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
