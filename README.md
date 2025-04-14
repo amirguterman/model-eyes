@@ -14,6 +14,15 @@ The MCP serves as a bridge between AI models and desktop/web environments, provi
 - Semantically rich information about UI states
 - Support for web applications and Windows desktop applications
 
+## Key Features
+
+- **Structured UI Representation**: Captures UI elements with their properties and relationships
+- **Differential Updates**: Efficiently tracks UI changes with sophisticated diffing algorithms
+- **Caching Mechanism**: Improves performance by avoiding redundant processing
+- **Element Filtering & Prioritization**: Focuses on the most relevant UI elements
+- **iframe Support**: Captures elements within iframes in web applications
+- **Token Optimization**: Advanced token management for AI model integration
+
 ## Installation
 
 ### Quick Setup
@@ -167,6 +176,67 @@ mcp-structured-ui/
 - Differential updates processed within 50ms
 - End-to-end latency reduced by 70% compared to screenshot methods
 - High accuracy in element detection and interaction targeting
+
+## Performance Optimizations
+
+ModelEyes includes several optimizations to maximize performance and minimize token usage:
+
+### Differential Updates
+
+Instead of sending the entire UI state on every update, ModelEyes computes the difference between states and sends only the changes:
+
+```typescript
+// Only the changes are transmitted
+const update = {
+  added: { "new-button-1": { /* element properties */ } },
+  modified: { "text-field-1": { text: "Updated text" } },
+  removed: ["old-element-1"]
+};
+```
+
+### Element Filtering
+
+Configure which elements to include based on relevance:
+
+```typescript
+const client = await createWebClient({
+  filtering: {
+    maxElements: 100,
+    prioritizeInteractable: true,
+    excludeTypes: ['script', 'style', 'meta'],
+    includeTypes: ['button', 'input', 'a']
+  }
+});
+```
+
+### Caching
+
+Efficient caching reduces processing overhead:
+
+```typescript
+// State and element caching is handled automatically
+const state1 = await client.captureState();
+// Later updates use caching for better performance
+client.subscribeToStateChanges((update) => {
+  // Cached elements are reused when possible
+});
+```
+
+### Token Management
+
+Sophisticated token estimation and management for AI models:
+
+```typescript
+// Prepare context with token optimization
+const context = server.prepareContextForModel({
+  maxTokens: 4000,
+  includeFullElementDetails: false
+});
+
+// Check token usage statistics
+const stats = server.getTokenUsageStats();
+console.log(`Average tokens: ${stats.average}, Max: ${stats.max}`);
+```
 
 ## Examples
 
