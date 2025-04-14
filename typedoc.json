@@ -1,0 +1,49 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/api",
+  "name": "ModelEyes",
+  "readme": "README.md",
+  "includeVersion": true,
+  "excludePrivate": true,
+  "excludeExternals": true,
+  "theme": "typedoc-theme",
+  "plugin": ["typedoc-plugin-markdown"],
+  "navigationLinks": {
+    "GitHub": "https://github.com/amirguterman/model-eyes",
+    "Getting Started": "../getting-started.html",
+    "Usage Guide": "../usage-guide.html",
+    "Protocol Specification": "../protocol-specification.html"
+  },
+  "sidebarLinks": {
+    "API": "modules.html",
+    "Classes": "classes.html",
+    "Interfaces": "interfaces.html"
+  },
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Client",
+    "Server",
+    "Common",
+    "*"
+  ],
+  "sort": [
+    "alphabetical",
+    "visibility",
+    "kind"
+  ],
+  "gitRevision": "main",
+  "githubPages": true,
+  "hideGenerator": false,
+  "searchInComments": true,
+  "visibilityFilters": {
+    "protected": false,
+    "private": false,
+    "inherited": true,
+    "external": false
+  },
+  "validation": {
+    "invalidLink": true,
+    "notDocumented": true
+  }
+}
