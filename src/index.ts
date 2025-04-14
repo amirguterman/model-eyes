@@ -1,6 +1,6 @@
 /**
- * Model Context Protocol (MCP) with Structured UI Representation
- * 
+ * ModelEyes: Model Context Protocol (MCP) with Structured UI Representation
+ *
  * This library provides a protocol for representing UI elements in a structured format,
  * enabling AI models to interact with user interfaces without requiring screenshots.
  */
@@ -98,4 +98,4 @@ export async function createWindowsClient(): Promise<WindowsMCPClient> {
 /**
  * Library version
  */
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.0'; // ModelEyes version

@@ -1,6 +1,6 @@
-# Model Context Protocol (MCP) with Structured UI Representation
+# ModelEyes
 
-This project implements a Model Context Protocol (MCP) that replaces traditional screenshot-based UI representation with a structured, efficient approach leveraging DOM parsing, HWND access, and UI element extraction.
+ModelEyes is a Model Context Protocol (MCP) implementation that replaces traditional screenshot-based UI representation with a structured, efficient approach leveraging DOM parsing, HWND access, and UI element extraction.
 
 ## Project Overview
 
@@ -20,8 +20,8 @@ For a quick setup and run, use one of the provided scripts:
 **Unix/Linux/macOS:**
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp-structured-ui.git
-cd mcp-structured-ui
+git clone https://github.com/yourusername/model-eyes.git
+cd model-eyes
 
 # Make the script executable
 chmod +x setup-and-run.sh
@@ -33,8 +33,8 @@ chmod +x setup-and-run.sh
 **Windows:**
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp-structured-ui.git
-cd mcp-structured-ui
+git clone https://github.com/yourusername/model-eyes.git
+cd model-eyes
 
 # Run the setup script
 setup-and-run.bat
@@ -46,8 +46,8 @@ If you prefer to run commands manually:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/mcp-structured-ui.git
-cd mcp-structured-ui
+git clone https://github.com/yourusername/model-eyes.git
+cd model-eyes
 
 # Install dependencies
 npm install
@@ -61,7 +61,7 @@ npm run build
 ### Web Client
 
 ```typescript
-import { createWebClient, createOpenAIServer } from 'mcp-structured-ui';
+import { createWebClient, createOpenAIServer } from 'model-eyes';
 
 // Initialize the client and server
 async function initializeMCP() {
@@ -108,7 +108,7 @@ initializeMCP().catch(console.error);
 ### Windows Desktop Client
 
 ```typescript
-import { createWindowsClient, createOpenAIServer } from 'mcp-structured-ui';
+import { createWindowsClient, createOpenAIServer } from 'model-eyes';
 
 // Initialize the client and server
 async function initializeMCP() {

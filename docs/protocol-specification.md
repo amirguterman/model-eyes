@@ -1,10 +1,10 @@
-# Model Context Protocol (MCP) Specification for Structured UI Representation
+# ModelEyes: Model Context Protocol (MCP) Specification for Structured UI Representation
 
 ## 1. Introduction
 
 This document specifies the Model Context Protocol (MCP) for structured UI representation, designed to replace traditional screenshot-based approaches with a more efficient and semantically rich format.
 
-### 1.1 Purpose
+### 1.1 Purpose of ModelEyes
 
 The protocol enables AI models to interact with user interfaces by providing structured information about UI elements, their properties, relationships, and states, without requiring the transmission of full screenshots.
 

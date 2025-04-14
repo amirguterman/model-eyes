@@ -1,12 +1,12 @@
 /**
- * MCP Structured UI Demonstration Script
- * 
- * This script demonstrates how to use the MCP in a real-world scenario,
+ * ModelEyes Demonstration Script
+ *
+ * This script demonstrates how to use ModelEyes in a real-world scenario,
  * showing the benefits of structured UI representation over screenshots.
  */
 
 // Import the MCP components
-const { createWebClient, createOpenAIServer } = require('../dist');
+const { createWebClient, createOpenAIServer } = require('../dist'); // Import ModelEyes components
 
 // Sample user queries to demonstrate
 const sampleQueries = [
@@ -25,7 +25,7 @@ const sampleScreenshotSize = 1024 * 768 * 4; // Approx 3MB for a screenshot (102
  */
 async function demonstrateMCP() {
   console.log("=".repeat(80));
-  console.log("MCP STRUCTURED UI DEMONSTRATION");
+  console.log("MODELEYES DEMONSTRATION");
   console.log("=".repeat(80));
   console.log("\nInitializing MCP components...");
   
@@ -143,4 +143,4 @@ if (require.main === module) {
   demonstrateMCP().catch(console.error);
 }
 
-module.exports = { demonstrateMCP };
+module.exports = { demonstrateMCP }; // Export the ModelEyes demonstration function
