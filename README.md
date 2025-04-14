@@ -9,7 +9,7 @@ The MCP serves as a bridge between AI models and desktop/web environments, provi
 - Dramatic reduction in context size compared to screenshots (95% reduction target)
 - Improved responsiveness in AI interactions with UIs
 - Semantically rich information about UI states
-- Cross-platform support for web and desktop applications
+- Support for web applications and Windows desktop applications
 
 ## Installation
 
@@ -133,7 +133,7 @@ async function initializeMCP() {
 ### Client-Side Components
 
 - **Web Implementation**: DOM traversal and element extraction
-- **Desktop Implementation**: UI Automation frameworks integration (Windows, macOS, Linux)
+- **Desktop Implementation**: Windows UI Automation framework integration
 - **Common Processing**: Caching, differential updates, filtering, and compression
 
 ### Server-Side Components
@@ -178,6 +178,21 @@ For detailed documentation, see:
 
 - [Protocol Specification](docs/protocol-specification.md) - Detailed specification of the MCP protocol
 - API Documentation (coming soon)
+
+## Roadmap
+
+1. **Enhance Windows Desktop Integration**
+   - Complete the Windows UI Automation integration
+   - Improve element detection and interaction
+
+2. **Future Platform Support**
+   - Add macOS Accessibility API support
+   - Develop Linux AT-SPI2 connector
+
+3. **Advanced Features**
+   - Semantic enrichment using local ML models
+   - Optimize differential update algorithms
+   - Develop fallback mechanisms for complex UIs
 
 ## Contributing
 
