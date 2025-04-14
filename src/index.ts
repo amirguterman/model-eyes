@@ -3,6 +3,16 @@
  *
  * This library provides a protocol for representing UI elements in a structured format,
  * enabling AI models to interact with user interfaces without requiring screenshots.
+ *
+ * ModelEyes dramatically reduces context size (by ~95%) compared to screenshot-based approaches
+ * while providing semantically rich information about UI elements, their properties, and relationships.
+ *
+ * The library consists of:
+ * - Client-side components for extracting UI structure from web and desktop applications
+ * - Server-side components for processing UI data and integrating with AI models
+ * - Common types and utilities shared between client and server
+ *
+ * @packageDocumentation
  */
 
 // Import specific types first to avoid reference errors
@@ -23,8 +33,25 @@ export { IMCPServer, BaseMCPServer } from './server/base-server';
 export { OpenAIMCPServer, OpenAIServerConfig } from './server/openai-server';
 
 /**
- * Create a web client with default configuration
- * @returns Initialized web client
+ * Creates and initializes a web client with sensible default configuration
+ *
+ * This function provides a convenient way to create a web client for extracting
+ * UI structure from web applications. It configures the client with recommended
+ * settings for most use cases.
+ *
+ * @example
+ * ```typescript
+ * // Create and initialize a web client
+ * const client = await createWebClient();
+ *
+ * // Capture the current UI state
+ * const state = await client.captureState();
+ *
+ * // Use the state with an AI model
+ * console.log(`Captured ${Object.keys(state.elements).length} elements`);
+ * ```
+ *
+ * @returns A Promise resolving to an initialized WebMCPClient instance
  */
 export async function createWebClient(): Promise<WebMCPClient> {
   const client = new WebMCPClient();
@@ -45,10 +72,26 @@ export async function createWebClient(): Promise<WebMCPClient> {
 }
 
 /**
- * Create an OpenAI server with the provided API key
- * @param apiKey OpenAI API key
- * @param model OpenAI model to use
- * @returns Initialized OpenAI server
+ * Creates and initializes an OpenAI server for processing UI states and generating actions
+ *
+ * This function provides a convenient way to create a server component that integrates
+ * with OpenAI models. It handles the configuration and initialization process.
+ *
+ * @example
+ * ```typescript
+ * // Create and initialize an OpenAI server
+ * const server = await createOpenAIServer('your-api-key-here', 'gpt-4');
+ *
+ * // Process a UI state
+ * server.processInitialState(uiState);
+ *
+ * // Prepare context for the model
+ * const context = server.prepareContextForModel();
+ * ```
+ *
+ * @param apiKey - Your OpenAI API key for authentication
+ * @param model - The OpenAI model to use (defaults to 'gpt-4')
+ * @returns A Promise resolving to an initialized OpenAIServer instance
  */
 export async function createOpenAIServer(
   apiKey: string,
@@ -96,6 +139,9 @@ export async function createWindowsClient(): Promise<WindowsMCPClient> {
 }
 
 /**
- * Library version
+ * Current library version
+ *
+ * This constant represents the current version of the ModelEyes library.
+ * It follows semantic versioning (major.minor.patch).
  */
 export const VERSION = '0.1.0'; // ModelEyes version
