@@ -13,6 +13,37 @@ The MCP serves as a bridge between AI models and desktop/web environments, provi
 
 ## Installation
 
+### Quick Setup
+
+For a quick setup and run, use one of the provided scripts:
+
+**Unix/Linux/macOS:**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/mcp-structured-ui.git
+cd mcp-structured-ui
+
+# Make the script executable
+chmod +x setup-and-run.sh
+
+# Run the setup script
+./setup-and-run.sh
+```
+
+**Windows:**
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/mcp-structured-ui.git
+cd mcp-structured-ui
+
+# Run the setup script
+setup-and-run.bat
+```
+
+### Manual Setup
+
+If you prefer to run commands manually:
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/mcp-structured-ui.git
