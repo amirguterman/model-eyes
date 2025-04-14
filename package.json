@@ -14,6 +14,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
+    "test": "node tests/basic-test.js",
     "clean": "rimraf dist",
     "lint": "eslint src --ext .ts",
     "test": "jest",

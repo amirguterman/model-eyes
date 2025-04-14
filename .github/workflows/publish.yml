@@ -22,9 +22,8 @@ jobs:
       - name: Build
         run: npm run build
       
-      # Add this step when you have tests
-      # - name: Test
-      #   run: npm test
+      - name: Test
+        run: npm test
       
       - name: Publish to GitHub Packages
         run: npm publish
