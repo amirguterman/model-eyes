@@ -43,8 +43,23 @@ else
   exit 1
 fi
 
-# Run the web example
-print_blue "Starting the web example..."
-print_blue "The example will be available at http://localhost:1234"
-print_blue "Press Ctrl+C to stop the server when you're done."
-npx parcel examples/web-example.html
+# Ask the user what they want to run
+print_blue "What would you like to run?"
+print_blue "1. Web Example (Interactive UI)"
+print_blue "2. Demo Script (Command Line)"
+read -p "Enter your choice (1 or 2): " choice
+
+if [ "$choice" = "1" ]; then
+  # Run the web example
+  print_blue "Starting the web example..."
+  print_blue "The example will be available at http://localhost:1234"
+  print_blue "Press Ctrl+C to stop the server when you're done."
+  npx parcel examples/web-example.html
+elif [ "$choice" = "2" ]; then
+  # Run the demo script
+  print_blue "Running the demonstration script..."
+  node examples/demo.js
+else
+  print_yellow "Invalid choice. Exiting."
+  exit 1
+fi
