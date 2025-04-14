@@ -1,5 +1,8 @@
 # ModelEyes
 
+[![GitHub Package](https://img.shields.io/github/package-json/v/amirguterman/model-eyes)](https://github.com/amirguterman/model-eyes/packages)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ModelEyes is a Model Context Protocol (MCP) implementation that replaces traditional screenshot-based UI representation with a structured, efficient approach leveraging DOM parsing, HWND access, and UI element extraction.
 
 ## Project Overview
