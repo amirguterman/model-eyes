@@ -18,7 +18,7 @@
     "test:jest": "jest --passWithNoTests",
     "clean": "rimraf dist",
     "lint": "eslint src --ext .ts",
-    "docs": "typedoc --out docs/api src --name ModelEyes --readme README.md --includeVersion --excludePrivate --excludeExternals --theme typedoc-theme",
+    "docs": "typedoc --out docs/api src --name ModelEyes --readme README.md --includeVersion --excludePrivate --excludeExternals",
     "docs:serve": "serve docs",
     "start:web-example": "parcel examples/web-example.html",
     "build:web-example": "parcel build examples/web-example.html"
