@@ -1,11 +1,19 @@
 {
-  "name": "model-eyes",
+  "name": "@amirguterman/model-eyes",
   "version": "0.1.0",
   "description": "ModelEyes: A Model Context Protocol (MCP) implementation with structured UI representation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amirguterman/model-eyes.git"
+  },
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "clean": "rimraf dist",
     "lint": "eslint src --ext .ts",
     "test": "jest",
