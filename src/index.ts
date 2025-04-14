@@ -19,6 +19,7 @@
 import { WebMCPClient } from './client/web/web-client';
 import { WindowsMCPClient } from './client/desktop/windows-client';
 import { OpenAIMCPServer, OpenAIServerConfig } from './server/openai-server';
+import { ModelEyesMcpServer } from './mcp/ui-server';
 
 // Export common types
 export * from './common/types';
@@ -31,6 +32,7 @@ export { WindowsMCPClient } from './client/desktop/windows-client';
 // Export server implementations
 export { IMCPServer, BaseMCPServer } from './server/base-server';
 export { OpenAIMCPServer, OpenAIServerConfig } from './server/openai-server';
+export { ModelEyesMcpServer, createModelEyesMcpServer, runMcpServer } from './mcp/ui-server';
 
 /**
  * Creates and initializes a web client with sensible default configuration
@@ -145,3 +147,24 @@ export async function createWindowsClient(): Promise<WindowsMCPClient> {
  * It follows semantic versioning (major.minor.patch).
  */
 export const VERSION = '0.1.0'; // ModelEyes version
+
+/**
+ * Creates and initializes an MCP server that exposes ModelEyes functionality
+ *
+ * This function provides a convenient way to create an MCP server that exposes
+ * ModelEyes' structured UI representation capabilities through the Model Context Protocol.
+ *
+ * @example
+ * ```typescript
+ * // Create and start an MCP server
+ * const server = await createModelEyesMcpServer();
+ *
+ * // Capture UI state from a web page
+ * const state = await server.captureWebState('https://example.com');
+ *
+ * // Get the current UI state
+ * const currentState = server.getCurrentState();
+ * ```
+ *
+ * @returns A Promise resolving to an initialized ModelEyesMcpServer instance
+ */

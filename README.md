@@ -16,6 +16,8 @@ The MCP serves as a bridge between AI models and desktop/web environments, provi
 
 ## Key Features
 
+### Core Features
+
 - **Structured UI Representation**: Captures UI elements with their properties and relationships
 - **Differential Updates**: Efficiently tracks UI changes with sophisticated diffing algorithms
 - **Caching Mechanism**: Improves performance by avoiding redundant processing
@@ -153,6 +155,48 @@ async function initializeMCP() {
 - **Data Processing**: Deserialization, hierarchy reconstruction, and validation
 - **Model Integration**: Context management and token optimization
 - **Action Generation**: Translating model outputs to precise element references
+
+## MCP Integration
+
+ModelEyes can be used as an MCP (Model Context Protocol) server, allowing AI models to access UI state through a standardized protocol:
+
+```typescript
+// Create and start an MCP server
+const server = await createModelEyesMcpServer();
+
+// Capture UI state from a web page
+const state = await server.captureWebState('https://example.com');
+
+// Access the UI state through MCP resources
+// In an MCP client:
+const uiState = await mcpClient.readResource('ui-state://current');
+```
+
+### Running as an MCP Server
+
+You can run ModelEyes as a standalone MCP server:
+
+```bash
+# Start the MCP server with stdio transport
+npm run start:mcp-server
+
+# Or run the example script
+npm run start:mcp-example
+```
+
+### Available MCP Resources
+
+- `ui-state://current` - Current UI state
+- `ui-state://history/0` - Most recent historical UI state
+- `ui-state://compressed` - Compressed current UI state
+- `ui-state://filtered` - Filtered UI state with only interactable elements
+
+### Available MCP Tools
+
+- `captureWebState` - Capture UI state from a web page
+- `captureWindowsState` - Capture UI state from a Windows desktop application
+- `executeAction` - Execute an action on a UI element
+- `findElements` - Find UI elements matching specific criteria
 
 ## Project Structure
 
