@@ -50,28 +50,39 @@ export class ModelEyesMcpServer {
 
   /**
    * Capture UI state from a web page
-   * 
+   *
    * @param url Optional URL to navigate to before capturing
    * @returns The captured UI state
    */
   async captureWebState(url?: string): Promise<UIState> {
-    // Initialize web client if not already done
-    if (!this.webClient) {
-      this.webClient = await createWebClient();
-    }
+    try {
+      // Check if we're in a browser environment
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        console.warn('Not in a browser environment. Web client cannot be initialized.');
+        throw new Error('Cannot capture web state: Not in a browser environment');
+      }
+      
+      // Initialize web client if not already done
+      if (!this.webClient) {
+        this.webClient = await createWebClient();
+      }
 
-    // Navigate to URL if provided
+      // Navigate to URL if provided
     if (url) {
       console.log(`Navigating to ${url}`);
     }
 
-    // Capture the state
-    const state = await this.webClient.captureState();
-    
-    // Store the state
-    this.currentState = state;
-    
-    return state;
+      // Capture the state
+      const state = await this.webClient.captureState();
+      
+      // Store the state
+      this.currentState = state;
+      
+      return state;
+    } catch (error) {
+      console.error('Error capturing web state:', error);
+      throw error;
+    }
   }
 
   /**
