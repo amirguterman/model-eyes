@@ -332,7 +332,27 @@
             else if (element.type === 'h1') className += ' element-h1';
             
             previewElement.className = className;
-            previewElement.dataset.id = element.id;
+            
+            // Set proper attributes instead of just using title
+            previewElement.setAttribute('data-id', element.id);
+            previewElement.setAttribute('data-type', element.type);
+            previewElement.setAttribute('data-interactable', element.interactable.toString());
+            
+            if (element.text) {
+              previewElement.setAttribute('data-text', element.text);
+            }
+            
+            if (element.bounds) {
+              previewElement.setAttribute('data-x', element.bounds.x.toString());
+              previewElement.setAttribute('data-y', element.bounds.y.toString());
+              previewElement.setAttribute('data-width', element.bounds.width.toString());
+              previewElement.setAttribute('data-height', element.bounds.height.toString());
+            }
+            
+            // Add role attribute if available
+            if (element.attributes && element.attributes.role) {
+              previewElement.setAttribute('role', element.attributes.role);
+            }
             
             // Calculate position and size relative to the container
             const left = (element.bounds.x - minX) * scale;
@@ -429,12 +449,8 @@
               console.log('Element details:', element);
             });
             
-            // Add detailed tooltip
-            previewElement.title = `Type: ${element.type}
-ID: ${element.id}${element.text ? '\nText: ' + element.text : ''}
-Position: (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})
-Size: ${Math.round(element.bounds.width)} × ${Math.round(element.bounds.height)}
-Interactable: ${element.interactable ? 'Yes' : 'No'}`;
+            // Add minimal tooltip with just the element type and ID
+            previewElement.title = `${element.type} (${element.id})`;
 
             // Add to the preview container
             previewContainerElem.appendChild(previewElement);
