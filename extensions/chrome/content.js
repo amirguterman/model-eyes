@@ -162,6 +162,15 @@ function captureElement(element, parentId, elements, idCounter) {
     return null;
   }
   
+  // Check if this element has meaningful children that should be prioritized
+  const hasInteractableChildren = Array.from(element.children).some(child => isElementInteractable(child));
+  const hasVisibleChildren = Array.from(element.children).some(child => isElementVisible(child));
+  const hasDeepNesting = element.querySelectorAll('*').length > element.children.length * 2; // Check for deep nesting
+  
+  // If this is a container with meaningful children, prioritize the children
+  const shouldPrioritizeChildren = (hasInteractableChildren || hasVisibleChildren || hasDeepNesting) &&
+                                  !['button', 'a', 'input', 'select', 'textarea'].includes(element.tagName.toLowerCase());
+  
   // Generate a unique ID for the element
   const id = `e${idCounter.value++}`;
   
@@ -180,29 +189,54 @@ function captureElement(element, parentId, elements, idCounter) {
   // Capture the element's HTML
   const outerHTML = element.outerHTML;
   
-  // Store the element
-  elements[id] = {
-    id: id,
-    parentId: parentId,
-    type: element.tagName.toLowerCase(),
-    text: element.textContent.trim(),
-    bounds: {
-      x: rect.left + window.scrollX,
-      y: rect.top + window.scrollY,
-      width: rect.width,
-      height: rect.height
-    },
-    attributes: attributes,
-    interactable: interactable,
-    html: outerHTML
-  };
-  
-  // Recursively capture children
-  for (const child of element.children) {
-    captureElement(child, id, elements, idCounter);
+  // If we're not prioritizing children, store this element
+  if (!shouldPrioritizeChildren) {
+    elements[id] = {
+      id: id,
+      parentId: parentId,
+      type: element.tagName.toLowerCase(),
+      text: element.textContent.trim(),
+      bounds: {
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height
+      },
+      attributes: attributes,
+      interactable: interactable,
+      html: outerHTML
+    };
   }
   
-  return id;
+  // Recursively capture children
+  const childIds = [];
+  for (const child of element.children) {
+    const childId = captureElement(child, shouldPrioritizeChildren ? parentId : id, elements, idCounter);
+    if (childId) {
+      childIds.push(childId);
+    }
+  }
+  
+  // If we're prioritizing children and have no meaningful children, capture this element as a fallback
+  if (shouldPrioritizeChildren && childIds.length === 0) {
+    elements[id] = {
+      id: id,
+      parentId: parentId,
+      type: element.tagName.toLowerCase(),
+      text: element.textContent.trim(),
+      bounds: {
+        x: rect.left + window.scrollX,
+        y: rect.top + window.scrollY,
+        width: rect.width,
+        height: rect.height
+      },
+      attributes: attributes,
+      interactable: interactable,
+      html: outerHTML
+    };
+  }
+  
+  return shouldPrioritizeChildren && childIds.length > 0 ? null : id;
 }
 
 /**
