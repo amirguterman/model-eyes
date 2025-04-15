@@ -68,61 +68,95 @@
       margin: 0 auto;
       background-color: #f9f9f9;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow: auto;
     }
-    .preview-element {
+    .grid-container {
+      display: grid;
+      background-color: #ffffff;
+      border: 1px solid #eee;
+      position: relative;
+    }
+    .grid-cell {
+      border: 1px solid #f0f0f0;
+      min-width: 20px;
+      min-height: 20px;
+      position: relative;
+    }
+    .grid-cell:hover {
+      background-color: rgba(74, 110, 224, 0.1);
+    }
+    .grid-element {
       position: absolute;
-      border: 1px solid rgba(74, 110, 224, 0.3);
-      background-color: rgba(255, 255, 255, 0.95);
-      font-size: 12px;
-      overflow: visible;
+      border: 2px solid transparent;
+      background-color: rgba(255, 255, 255, 0.7);
+      z-index: 10;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
       box-sizing: border-box;
+      font-size: 12px;
       transition: all 0.2s;
-      z-index: 1;
     }
-    .preview-element:hover {
-      border-color: #4a6ee0;
-      background-color: rgba(74, 110, 224, 0.05);
+    .grid-element:hover {
       z-index: 100;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
-    .preview-element.interactive {
-      border-color: rgba(40, 167, 69, 0.3);
+    .grid-element.interactive {
+      border-color: rgba(40, 167, 69, 0.5);
     }
-    .preview-element.interactive:hover {
+    .grid-element.interactive:hover {
       border-color: #28a745;
       background-color: rgba(40, 167, 69, 0.05);
     }
-    .preview-element-content {
+    .grid-element-label {
       position: absolute;
-      top: -18px;
-      left: -1px;
+      top: 0;
+      left: 0;
       padding: 2px 4px;
+      font-size: 10px;
       background-color: #4a6ee0;
       color: white;
-      border-radius: 3px 3px 0 0;
-      font-size: 9px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-      z-index: 2;
-      opacity: 0.8;
+      border-radius: 0 0 4px 0;
+      z-index: 11;
+      opacity: 0.9;
     }
-    .preview-element.interactive .preview-element-content {
+    .grid-element.interactive .grid-element-label {
       background-color: #28a745;
     }
-    .preview-element-text {
-      position: relative;
-      padding: 4px;
-      font-size: 11px;
-      line-height: 1.3;
-      text-align: left;
-      max-width: 100%;
-      max-height: 100%;
+    .grid-element-content {
+      font-size: 10px;
+      text-align: center;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #333;
-      z-index: 1;
+      white-space: nowrap;
+      max-width: 100%;
+      padding: 2px;
+    }
+    .element-details-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      z-index: 2000;
+      font-size: 12px;
+      max-width: 300px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .element-details-panel div {
+      margin-bottom: 5px;
+    }
+    .grid-coordinates {
+      position: absolute;
+      top: 0;
+      left: 0;
+      font-size: 8px;
+      color: #999;
+      pointer-events: none;
     }
     .preview-controls {
       margin-bottom: 10px;
@@ -157,27 +191,28 @@
     .collapse-btn:hover {
       background-color: #e9ecef;
     }
-    .element-details-panel {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background-color: white;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 10px;
-      z-index: 2000;
-      font-size: 12px;
-      max-width: 300px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-    .element-details-panel div {
-      margin-bottom: 5px;
-    }
     .success {
       color: #28a745;
     }
     .error {
       color: #dc3545;
+    }
+    .grid-legend {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      margin-right: 5px;
+      border-radius: 3px;
     }
   </style>
 </head>
@@ -225,7 +260,7 @@
     <pre id="find-results">No results</pre>
     
     <h3>Visual Preview</h3>
-    <p>This shows a visual representation of the found elements:</p>
+    <p>This shows a grid-based representation of the found elements:</p>
     <div class="preview-controls">
       <div class="preview-zoom">
         <button class="zoom-btn" id="zoom-out">-</button>
@@ -233,11 +268,22 @@
         <button class="zoom-btn" id="zoom-in">+</button>
       </div>
       <button class="zoom-btn" id="reset-view">Reset View</button>
+      <div>
+        <label for="grid-size">Grid Size:</label>
+        <select id="grid-size">
+          <option value="10">10px</option>
+          <option value="20" selected>20px</option>
+          <option value="30">30px</option>
+          <option value="40">40px</option>
+          <option value="50">50px</option>
+        </select>
+      </div>
     </div>
     <div class="preview-box" id="preview-box">
       <div class="preview-container" id="preview-container"></div>
       <div class="status" id="preview-status" style="display: none;"></div>
     </div>
+    <div class="grid-legend" id="grid-legend"></div>
   </div>
   
   <div class="card">
@@ -262,6 +308,8 @@
       const previewBoxElem = document.getElementById('preview-box');
       const previewContainerElem = document.getElementById('preview-container');
       const previewStatusElem = document.getElementById('preview-status');
+      const gridSizeSelect = document.getElementById('grid-size');
+      const gridLegendElem = document.getElementById('grid-legend');
       
       // Initialize zoom level
       let zoomLevel = 1;
@@ -290,9 +338,17 @@
         container.style.transformOrigin = 'top left';
       }
       
-      function createVisualPreview(elements) {
+      // Grid size change handler
+      gridSizeSelect.addEventListener('change', function() {
+        const elements = JSON.parse(findResultsElem.textContent).elements || [];
+        createGridPreview(elements);
+      });
+      
+      // Function to create a grid-based preview of the found elements
+      function createGridPreview(elements) {
         // Clear the preview container
         previewContainerElem.innerHTML = '';
+        gridLegendElem.innerHTML = '';
         
         if (!elements || elements.length === 0) {
           previewStatusElem.className = 'status';
@@ -305,7 +361,10 @@
         // Hide the status
         previewStatusElem.style.display = 'none';
         
-        // Find the bounds of all elements to calculate scaling
+        // Get the grid cell size
+        const gridSize = parseInt(gridSizeSelect.value, 10);
+        
+        // Find the bounds of all elements to calculate grid dimensions
         let minX = Infinity;
         let minY = Infinity;
         let maxX = 0;
@@ -320,31 +379,68 @@
           }
         });
         
-        // Calculate the content dimensions
-        const contentWidth = maxX - minX;
-        const contentHeight = maxY - minY;
+        // Calculate grid dimensions
+        const gridWidth = Math.ceil((maxX - minX) / gridSize);
+        const gridHeight = Math.ceil((maxY - minY) / gridSize);
         
-        // Get the preview box dimensions
-        const previewBoxWidth = previewBoxElem.clientWidth - 40; // Subtract padding
-        const previewBoxHeight = 600;
+        // Create the grid container
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'grid-container';
+        gridContainer.style.gridTemplateColumns = `repeat(${gridWidth}, ${gridSize}px)`;
+        gridContainer.style.gridTemplateRows = `repeat(${gridHeight}, ${gridSize}px)`;
+        gridContainer.style.width = `${gridWidth * gridSize}px`;
+        gridContainer.style.height = `${gridHeight * gridSize}px`;
         
-        // Calculate the scale to fit the content
-        const boxScaleX = previewBoxWidth / (contentWidth || 1);
-        const boxScaleY = previewBoxHeight / (contentHeight || 1);
-        const scale = Math.min(boxScaleX, boxScaleY) * 0.9; // 90% of the available space
+        // Create grid cells
+        for (let y = 0; y < gridHeight; y++) {
+          for (let x = 0; x < gridWidth; x++) {
+            const cell = document.createElement('div');
+            cell.className = 'grid-cell';
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            
+            // Add coordinates to every 5th cell for reference
+            if ((x % 5 === 0 && y % 5 === 0) || (x === 0 && y === 0)) {
+              const coords = document.createElement('div');
+              coords.className = 'grid-coordinates';
+              coords.textContent = `${x},${y}`;
+              cell.appendChild(coords);
+            }
+            
+            gridContainer.appendChild(cell);
+          }
+        }
         
-        // Create a background container that represents the page
-        const pageContainer = document.createElement('div');
-        pageContainer.style.position = 'relative';
-        pageContainer.style.width = `${contentWidth * scale}px`;
-        pageContainer.style.height = `${contentHeight * scale}px`;
-        pageContainer.style.backgroundColor = '#f8f8f8';
-        pageContainer.style.border = '1px solid #ddd';
-        pageContainer.style.borderRadius = '4px';
-        pageContainer.style.margin = '0 auto';
-        pageContainer.style.overflow = 'hidden';
+        previewContainerElem.appendChild(gridContainer);
         
-        previewContainerElem.appendChild(pageContainer);
+        // Create a color map for element types
+        const elementTypes = [...new Set(elements.map(el => el.type))];
+        const colorMap = {};
+        const colors = [
+          '#4a6ee0', '#28a745', '#dc3545', '#fd7e14', '#6f42c1', 
+          '#e83e8c', '#17a2b8', '#ffc107', '#20c997', '#6c757d'
+        ];
+        
+        elementTypes.forEach((type, index) => {
+          colorMap[type] = colors[index % colors.length];
+        });
+        
+        // Create legend
+        elementTypes.forEach(type => {
+          const legendItem = document.createElement('div');
+          legendItem.className = 'legend-item';
+          
+          const colorBox = document.createElement('div');
+          colorBox.className = 'legend-color';
+          colorBox.style.backgroundColor = colorMap[type];
+          
+          const label = document.createElement('span');
+          label.textContent = type;
+          
+          legendItem.appendChild(colorBox);
+          legendItem.appendChild(label);
+          gridLegendElem.appendChild(legendItem);
+        });
         
         // Sort elements by size (largest to smallest) for proper layering
         const sortedElements = [...elements].sort((a, b) => {
@@ -353,192 +449,79 @@
           return bArea - aArea; // Largest first
         });
         
-        // Create elements in the preview
+        // Add elements to the grid
         sortedElements.forEach(element => {
           if (element.bounds) {
-            // Create element with appropriate class
-            const previewElement = document.createElement('div');
+            // Calculate grid coordinates
+            const startX = Math.floor((element.bounds.x - minX) / gridSize);
+            const startY = Math.floor((element.bounds.y - minY) / gridSize);
+            const endX = Math.ceil((element.bounds.x + element.bounds.width - minX) / gridSize);
+            const endY = Math.ceil((element.bounds.y + element.bounds.height - minY) / gridSize);
             
-            // Set proper data attributes
-            previewElement.setAttribute('data-id', element.id);
-            previewElement.setAttribute('data-type', element.type);
-            previewElement.setAttribute('data-interactable', element.interactable.toString());
+            // Create element overlay
+            const gridElement = document.createElement('div');
+            gridElement.className = `grid-element ${element.interactable ? 'interactive' : ''}`;
+            gridElement.dataset.id = element.id;
+            gridElement.dataset.type = element.type;
             
-            if (element.text) {
-              previewElement.setAttribute('data-text', element.text);
-            }
+            // Position and size the element
+            gridElement.style.left = `${startX * gridSize}px`;
+            gridElement.style.top = `${startY * gridSize}px`;
+            gridElement.style.width = `${(endX - startX) * gridSize}px`;
+            gridElement.style.height = `${(endY - startY) * gridSize}px`;
             
-            // Set element class based on type and interactability
-            let className = `preview-element`;
-            if (element.interactable) {
-              className += ' interactive';
-            }
+            // Style based on element type
+            gridElement.style.backgroundColor = `${colorMap[element.type]}22`; // 22 is hex for 13% opacity
+            gridElement.style.borderColor = colorMap[element.type];
             
-            // Add type-specific classes
-            className += ` element-${element.type}`;
-            previewElement.className = className;
+            // Add element label
+            const elementLabel = document.createElement('div');
+            elementLabel.className = 'grid-element-label';
+            elementLabel.textContent = element.type;
+            elementLabel.style.backgroundColor = colorMap[element.type];
+            gridElement.appendChild(elementLabel);
             
-            // Calculate position and size relative to the page container
-            const left = (element.bounds.x - minX) * scale;
-            const top = (element.bounds.y - minY) * scale;
-            const width = Math.max(element.bounds.width * scale, 10); // Minimum width of 10px
-            const height = Math.max(element.bounds.height * scale, 10); // Minimum height of 10px
-            
-            // Apply styles based on element type
-            previewElement.style.position = 'absolute';
-            previewElement.style.left = `${left}px`;
-            previewElement.style.top = `${top}px`;
-            previewElement.style.width = `${width}px`;
-            previewElement.style.height = `${height}px`;
-            
-            // Apply more accurate styling based on element type
-            switch(element.type) {
-              case 'h1':
-                previewElement.style.fontWeight = 'bold';
-                previewElement.style.fontSize = '18px';
-                previewElement.style.color = '#333';
-                previewElement.style.backgroundColor = 'transparent';
-                previewElement.style.border = 'none';
-                break;
-              case 'a':
-                previewElement.style.color = '#0066cc';
-                previewElement.style.textDecoration = 'underline';
-                previewElement.style.cursor = 'pointer';
-                previewElement.style.backgroundColor = 'transparent';
-                previewElement.style.border = 'none';
-                break;
-              case 'button':
-                previewElement.style.backgroundColor = '#4a6ee0';
-                previewElement.style.color = 'white';
-                previewElement.style.borderRadius = '4px';
-                previewElement.style.border = 'none';
-                previewElement.style.cursor = 'pointer';
-                previewElement.style.textAlign = 'center';
-                break;
-              case 'input':
-                previewElement.style.backgroundColor = '#ffffff';
-                previewElement.style.border = '1px solid #ccc';
-                previewElement.style.borderRadius = '3px';
-                break;
-              case 'table':
-                previewElement.style.border = '1px solid #ddd';
-                previewElement.style.borderCollapse = 'collapse';
-                previewElement.style.backgroundColor = '#fff';
-                break;
-              case 'tr':
-                previewElement.style.borderBottom = '1px solid #eee';
-                break;
-              case 'td':
-                previewElement.style.padding = '4px';
-                previewElement.style.textAlign = 'left';
-                break;
-              case 'div':
-                // Most divs should be transparent unless they're containers
-                if (element.bounds.width * element.bounds.height > 10000) {
-                  previewElement.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-                  previewElement.style.border = '1px solid #eee';
-                  previewElement.style.borderRadius = '4px';
-                  previewElement.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-                } else {
-                  previewElement.style.backgroundColor = 'transparent';
-                  previewElement.style.border = 'none';
-                }
-                break;
-              default:
-                previewElement.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
-                previewElement.style.border = '1px dashed #ccc';
-            }
-            
-            // Add element text content with proper formatting
+            // Add element content (truncated text)
             if (element.text && element.text.trim()) {
-              // Create appropriate element for text based on element type
-              let elementText;
+              const elementContent = document.createElement('div');
+              elementContent.className = 'grid-element-content';
               
-              switch(element.type) {
-                case 'h1':
-                  elementText = document.createElement('h1');
-                  elementText.style.margin = '0';
-                  elementText.style.padding = '0';
-                  elementText.style.fontSize = `${Math.max(12, Math.min(16, height/2))}px`;
-                  elementText.style.color = '#333';
-                  break;
-                case 'a':
-                  elementText = document.createElement('a');
-                  elementText.style.color = '#0066cc';
-                  elementText.style.textDecoration = 'underline';
-                  elementText.style.fontSize = `${Math.max(9, Math.min(12, height/2))}px`;
-                  break;
-                case 'button':
-                  elementText = document.createElement('div');
-                  elementText.style.color = 'white';
-                  elementText.style.fontSize = `${Math.max(9, Math.min(12, height/2))}px`;
-                  elementText.style.fontWeight = 'bold';
-                  elementText.style.textAlign = 'center';
-                  elementText.style.display = 'flex';
-                  elementText.style.alignItems = 'center';
-                  elementText.style.justifyContent = 'center';
-                  elementText.style.width = '100%';
-                  elementText.style.height = '100%';
-                  break;
-                default:
-                  elementText = document.createElement('div');
-                  elementText.style.fontSize = `${Math.max(9, Math.min(12, height/2))}px`;
-                  elementText.style.color = '#333';
-                  elementText.style.overflow = 'hidden';
-                  elementText.style.textOverflow = 'ellipsis';
+              // Truncate text based on element size
+              let displayText = element.text.trim();
+              const maxLength = Math.max(5, Math.floor((endX - startX) * 3));
+              
+              if (displayText.length > maxLength) {
+                displayText = displayText.substring(0, maxLength - 3) + '...';
               }
               
-              elementText.className = 'preview-element-text';
-              
-              // Format text appropriately
-              let displayText = element.text;
-              
-              // Handle special cases for better formatting
-              if (element.type === 'td' && displayText.length > 20) {
-                // For table cells, show shorter text
-                displayText = displayText.substring(0, 20) + '...';
-              } else if (displayText.length > 50) {
-                // For general elements, limit text length
-                displayText = displayText.substring(0, 50) + '...';
-              }
-              
-              elementText.textContent = displayText;
-              
-              // Add the text element
-              previewElement.appendChild(elementText);
-            }
-            
-            // Add a small label showing the element type (only for larger elements)
-            if (width > 30 && height > 20) {
-              const elementLabel = document.createElement('div');
-              elementLabel.className = 'preview-element-content';
-              elementLabel.textContent = element.type;
-              previewElement.appendChild(elementLabel);
+              elementContent.textContent = displayText;
+              gridElement.appendChild(elementContent);
             }
             
             // Add tooltip with element details
-            previewElement.title = `Type: ${element.type}
+            gridElement.title = `Type: ${element.type}
 ID: ${element.id}
 ${element.text ? 'Text: ' + element.text : ''}
 Position: (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})
 Size: ${Math.round(element.bounds.width)} × ${Math.round(element.bounds.height)}
+Grid: (${startX},${startY}) to (${endX-1},${endY-1})
 Interactable: ${element.interactable ? 'Yes' : 'No'}`;
             
             // Add click handler to highlight the element
-            previewElement.addEventListener('click', function(e) {
+            gridElement.addEventListener('click', function(e) {
               e.stopPropagation();
               
               // Remove highlight from all elements
-              document.querySelectorAll('.preview-element').forEach(el => {
-                el.style.zIndex = '1';
+              document.querySelectorAll('.grid-element').forEach(el => {
+                el.style.zIndex = '10';
                 el.style.boxShadow = 'none';
-                el.style.outline = 'none';
+                el.style.opacity = '0.7';
               });
               
               // Highlight this element
-              this.style.zIndex = '1000';
-              this.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.5)';
-              this.style.outline = '2px solid red';
+              this.style.zIndex = '100';
+              this.style.boxShadow = `0 0 10px ${colorMap[element.type]}`;
+              this.style.opacity = '1';
               
               // Show element details in console
               console.log('Element details:', element);
@@ -553,6 +536,7 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
                 ${element.text ? `<div><strong>Text:</strong> ${element.text}</div>` : ''}
                 <div><strong>Position:</strong> (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})</div>
                 <div><strong>Size:</strong> ${Math.round(element.bounds.width)} × ${Math.round(element.bounds.height)}</div>
+                <div><strong>Grid Cells:</strong> (${startX},${startY}) to (${endX-1},${endY-1})</div>
                 <div><strong>Interactable:</strong> ${element.interactable ? 'Yes' : 'No'}</div>
               `;
               
@@ -564,8 +548,8 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
               previewBoxElem.appendChild(detailsPanel);
             });
             
-            // Add to the page container
-            pageContainer.appendChild(previewElement);
+            // Add to the grid container
+            gridContainer.appendChild(gridElement);
           }
         });
       }
@@ -663,7 +647,7 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
           findResultsElem.textContent = JSON.stringify(data, null, 2);
           
           // Create visual preview of the found elements
-          createVisualPreview(data.elements);
+          createGridPreview(data.elements);
         } catch (error) {
           // Show error message
           findResultsElem.textContent = `Error: ${error.message}`;
