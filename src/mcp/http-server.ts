@@ -7,7 +7,7 @@
 
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import { UIState, DifferentialUpdate } from '../common/types';
+import { UIState, DifferentialUpdate, UIElement } from '../common/types';
 
 /**
  * ModelEyes MCP HTTP Server
@@ -128,6 +128,20 @@ export class ModelEyesHttpServer {
     });
 
     // Endpoint to find elements by criteria
+    // Endpoint to filter UI state to only relevant elements
+    this.expressApp.get('/api/ui-state/filtered', (req: Request, res: Response) => {
+      if (!this.currentState) {
+        res.status(404).json({
+          success: false,
+          error: 'No UI state available'
+        });
+        return;
+      }
+      
+      const filteredState = this.filterRelevantElements(this.currentState);
+      res.status(200).json(filteredState);
+    });
+    
     this.expressApp.post('/api/find-elements', (req: Request, res: Response) => {
       try {
         const { type, text, interactable, limit = 10 } = req.body;
@@ -276,6 +290,85 @@ export class ModelEyesHttpServer {
     
     // Update the current state
     this.updateCurrentState(newState);
+  }
+
+  /**
+   * Filter UI state to only include relevant elements for browsing
+   *
+   * @param state The original UI state
+   * @returns A filtered UI state with only relevant elements
+   */
+  private filterRelevantElements(state: UIState): UIState {
+    // Create a deep copy of the state
+    const filteredState: UIState = {
+      ...state,
+      elements: {}
+    };
+    
+    // Get all elements
+    const elements = state.elements;
+    
+    // Filter elements based on relevance criteria
+    const relevantElements: Record<string, UIElement> = {};
+    
+    for (const [id, element] of Object.entries(elements)) {
+      // Skip elements without bounds (not visible)
+      if (!element.bounds ||
+          element.bounds.width === 0 ||
+          element.bounds.height === 0) {
+        continue;
+      }
+      
+      // Skip elements that are too small (likely decorative)
+      if (element.bounds.width < 5 || element.bounds.height < 5) {
+        continue;
+      }
+      
+      // Always include interactable elements
+      if (element.interactable) {
+        relevantElements[id] = element;
+        continue;
+      }
+      
+      // Include elements with meaningful text content
+      if (element.text && element.text.trim().length > 0) {
+        // Skip elements with very short text that aren't likely meaningful
+        if (element.text.trim().length > 1) {
+          relevantElements[id] = element;
+          continue;
+        }
+      }
+      
+      // Include elements with specific types that are usually important
+      const importantTypes = ['a', 'button', 'input', 'select', 'textarea', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'label', 'form'];
+      if (importantTypes.includes(element.type)) {
+        relevantElements[id] = element;
+        continue;
+      }
+      
+      // Skip generic containers without text or interactivity
+      if (['div', 'span', 'section', 'article'].includes(element.type) &&
+          (!element.text || element.text.trim().length === 0) &&
+          !element.interactable) {
+        continue;
+      }
+      
+      // Include elements with specific attributes that indicate importance
+      if (element.attributes) {
+        const importantAttributes = ['id', 'role', 'aria-label', 'title', 'alt'];
+        for (const attr of importantAttributes) {
+          if (element.attributes[attr] && element.attributes[attr].trim().length > 0) {
+            relevantElements[id] = element;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Update the filtered state
+    filteredState.elements = relevantElements;
+    
+    return filteredState;
   }
 
   /**

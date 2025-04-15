@@ -5,6 +5,23 @@
  * It's primarily used for element selection and highlighting.
  */
 
+/**
+ * Constants for element filtering
+ */
+const IMPORTANT_ELEMENT_TYPES = [
+  'a', 'button', 'input', 'select', 'textarea', 'img',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'label', 'form',
+  'table', 'tr', 'td', 'th', 'ul', 'ol', 'li'
+];
+
+const GENERIC_CONTAINER_TYPES = [
+  'div', 'span', 'section', 'article', 'main', 'header', 'footer'
+];
+
+const IMPORTANT_ATTRIBUTES = [
+  'id', 'role', 'aria-label', 'title', 'alt', 'name', 'placeholder'
+];
+
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'highlightElement') {
@@ -54,17 +71,80 @@ function highlightElement(elementId) {
   }, 3000);
 }
 
-// Add data attributes to elements for easier selection
+/**
+ * Check if an element is likely to be relevant for browsing
+ *
+ * @param {Element} element - DOM element to check
+ * @returns {boolean} Whether the element is relevant
+ */
+function isRelevantElement(element) {
+  // Skip invisible elements
+  if (!isElementVisible(element)) {
+    return false;
+  }
+  
+  // Skip elements that are too small
+  const rect = element.getBoundingClientRect();
+  if (rect.width < 5 || rect.height < 5) {
+    return false;
+  }
+  
+  // Always include interactable elements
+  if (isElementInteractable(element)) {
+    return true;
+  }
+  
+  // Include elements with meaningful text content
+  const text = element.textContent.trim();
+  if (text.length > 1) {
+    return true;
+  }
+  
+  // Include elements with important types
+  const tagName = element.tagName.toLowerCase();
+  if (IMPORTANT_ELEMENT_TYPES.includes(tagName)) {
+    return true;
+  }
+  
+  // Skip generic containers without text or interactivity
+  if (GENERIC_CONTAINER_TYPES.includes(tagName) &&
+      text.length === 0 &&
+      !isElementInteractable(element)) {
+    return false;
+  }
+  
+  // Include elements with important attributes
+  for (const attr of IMPORTANT_ATTRIBUTES) {
+    if (element.hasAttribute(attr) && element.getAttribute(attr).trim().length > 0) {
+      return true;
+    }
+  }
+  
+  // Default to excluding the element
+  return false;
+}
+
+// Add data attributes to elements for easier selection, but only to relevant ones
 function addDataAttributes() {
   // Generate a unique ID for this page
   const pageId = Math.random().toString(36).substring(2, 10);
   
-  // Add data attributes to all elements
+  // Add data attributes only to relevant elements
   const elements = document.querySelectorAll('*');
+  let relevantCount = 0;
+  let totalCount = 0;
   elements.forEach((element, index) => {
-    const elementId = `${pageId}-${index}`;
-    element.setAttribute('data-modeleyes-id', elementId);
+    totalCount++;
+    
+    // Only add attributes to relevant elements
+    if (isRelevantElement(element)) {
+      relevantCount++;
+      const elementId = `${pageId}-${index}`;
+      element.setAttribute('data-modeleyes-id', elementId);
+    }
   });
+  
+  console.log(`ModelEyes: Added data attributes to ${relevantCount} relevant elements out of ${totalCount} total elements (${Math.round((relevantCount/totalCount) * 100)}%)`);
 }
 
 // Run when the content script is loaded

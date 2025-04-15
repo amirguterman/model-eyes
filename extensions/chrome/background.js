@@ -61,14 +61,100 @@ async function captureUIState(tabId, serverUrl, captureMode) {
  * @param {object} uiState - UI state to send
  * @returns {Promise<object>} - Server response
  */
+/**
+ * Filter UI state to only include relevant elements for browsing
+ *
+ * @param {object} uiState - The original UI state
+ * @returns {object} A filtered UI state with only relevant elements
+ */
+function filterRelevantElements(uiState) {
+  // Create a deep copy of the state
+  const filteredState = {
+    ...uiState,
+    elements: {}
+  };
+  
+  // Get all elements
+  const elements = uiState.elements;
+  
+  // Filter elements based on relevance criteria
+  const relevantElements = {};
+  
+  for (const [id, element] of Object.entries(elements)) {
+    // Skip elements without bounds (not visible)
+    if (!element.bounds ||
+        element.bounds.width === 0 ||
+        element.bounds.height === 0) {
+      continue;
+    }
+    
+    // Skip elements that are too small (likely decorative)
+    if (element.bounds.width < 5 || element.bounds.height < 5) {
+      continue;
+    }
+    
+    // Always include interactable elements
+    if (element.interactable) {
+      relevantElements[id] = element;
+      continue;
+    }
+    
+    // Include elements with meaningful text content
+    if (element.text && element.text.trim().length > 0) {
+      // Skip elements with very short text that aren't likely meaningful
+      if (element.text.trim().length > 1) {
+        relevantElements[id] = element;
+        continue;
+      }
+    }
+    
+    // Include elements with specific types that are usually important
+    const importantTypes = ['a', 'button', 'input', 'select', 'textarea', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'label', 'form'];
+    if (importantTypes.includes(element.type)) {
+      relevantElements[id] = element;
+      continue;
+    }
+    
+    // Skip generic containers without text or interactivity
+    if (['div', 'span', 'section', 'article'].includes(element.type) &&
+        (!element.text || element.text.trim().length === 0) &&
+        !element.interactable) {
+      continue;
+    }
+    
+    // Include elements with specific attributes that indicate importance
+    if (element.attributes) {
+      const importantAttributes = ['id', 'role', 'aria-label', 'title', 'alt'];
+      for (const attr of importantAttributes) {
+        if (element.attributes[attr] && element.attributes[attr].trim().length > 0) {
+          relevantElements[id] = element;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Update the filtered state
+  filteredState.elements = relevantElements;
+  
+  return filteredState;
+}
+
 async function sendToMCPServer(serverUrl, uiState) {
   try {
+    // Filter the UI state to only include relevant elements
+    const filteredState = filterRelevantElements(uiState);
+    
+    // Log the reduction in elements
+    const originalCount = Object.keys(uiState.elements).length;
+    const filteredCount = Object.keys(filteredState.elements).length;
+    console.log(`Filtered UI state: ${filteredCount} elements (reduced from ${originalCount}, ${Math.round((1 - filteredCount/originalCount) * 100)}% reduction)`);
     const response = await fetch(`${serverUrl}/api/ui-state`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(uiState)
+      body: JSON.stringify(filteredState)
     });
     
     if (!response.ok) {
