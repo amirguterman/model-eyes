@@ -53,6 +53,30 @@
       background-color: #f8f9fa;
       border: 1px solid #dee2e6;
     }
+    .preview-box {
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 20px;
+      margin-top: 15px;
+      background-color: white;
+      min-height: 200px;
+      position: relative;
+    }
+    .preview-element {
+      position: absolute;
+      border: 1px solid #4a6ee0;
+      background-color: rgba(74, 110, 224, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+    .preview-element.interactive {
+      border: 2px solid #28a745;
+      background-color: rgba(40, 167, 69, 0.1);
+    }
     .success {
       color: #28a745;
     }
@@ -89,6 +113,12 @@
     </div>
     <button id="find-btn">Find Elements</button>
     <pre id="find-results">No results</pre>
+    
+    <h3>Visual Preview</h3>
+    <p>This shows a visual representation of the found elements:</p>
+    <div class="preview-box" id="preview-box">
+      <div class="status" id="preview-status" style="display: none;"></div>
+    </div>
   </div>
   
   <div class="card">
@@ -110,6 +140,84 @@
       const statusElem = document.getElementById('status');
       const findBtn = document.getElementById('find-btn');
       const findResultsElem = document.getElementById('find-results');
+      const previewBoxElem = document.getElementById('preview-box');
+      const previewStatusElem = document.getElementById('preview-status');
+      
+      // Function to create a visual preview of the found elements
+      function createVisualPreview(elements) {
+        // Clear the preview box
+        previewBoxElem.innerHTML = '';
+        
+        if (!elements || elements.length === 0) {
+          previewStatusElem.className = 'status';
+          previewStatusElem.textContent = 'No elements found';
+          previewStatusElem.style.display = 'block';
+          previewBoxElem.appendChild(previewStatusElem);
+          return;
+        }
+        
+        // Hide the status
+        previewStatusElem.style.display = 'none';
+        
+        // Set the preview box dimensions
+        const previewWidth = previewBoxElem.clientWidth;
+        const previewHeight = 400; // Fixed height for the preview
+        previewBoxElem.style.height = `${previewHeight}px`;
+        
+        // Find the bounds of all elements to calculate scaling
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = 0;
+        let maxY = 0;
+        
+        elements.forEach(element => {
+          if (element.bounds) {
+            minX = Math.min(minX, element.bounds.x);
+            minY = Math.min(minY, element.bounds.y);
+            maxX = Math.max(maxX, element.bounds.x + element.bounds.width);
+            maxY = Math.max(maxY, element.bounds.y + element.bounds.height);
+          }
+        });
+        
+        // Calculate scaling factors
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+        const scaleX = previewWidth / (contentWidth || 1);
+        const scaleY = previewHeight / (contentHeight || 1);
+        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+        
+        // Create elements in the preview
+        elements.forEach(element => {
+          if (element.bounds) {
+            const previewElement = document.createElement('div');
+            previewElement.className = `preview-element${element.interactable ? ' interactive' : ''}`;
+            
+            // Position and size the element
+            const left = (element.bounds.x - minX) * scale;
+            const top = (element.bounds.y - minY) * scale;
+            const width = element.bounds.width * scale;
+            const height = element.bounds.height * scale;
+            
+            previewElement.style.left = `${left}px`;
+            previewElement.style.top = `${top}px`;
+            previewElement.style.width = `${width}px`;
+            previewElement.style.height = `${height}px`;
+            
+            // Add element information
+            const elementInfo = document.createElement('span');
+            elementInfo.textContent = element.type;
+            if (width > 50 && height > 20) {
+              previewElement.appendChild(elementInfo);
+            }
+            
+            // Add tooltip with more information
+            previewElement.title = `Type: ${element.type}\nID: ${element.id}${element.text ? '\nText: ' + element.text : ''}`;
+            
+            // Add to the preview box
+            previewBoxElem.appendChild(previewElement);
+          }
+        });
+      }
       
       // Refresh UI state
       refreshBtn.addEventListener('click', async function() {
@@ -177,9 +285,18 @@
           
           // Format and display the results
           findResultsElem.textContent = JSON.stringify(data, null, 2);
+          
+          // Create visual preview of the found elements
+          createVisualPreview(data.elements);
         } catch (error) {
           // Show error message
           findResultsElem.textContent = `Error: ${error.message}`;
+          
+          // Clear the preview
+          previewBoxElem.innerHTML = '';
+          previewStatusElem.className = 'status error';
+          previewStatusElem.textContent = `Error: ${error.message}`;
+          previewStatusElem.style.display = 'block';
         } finally {
           findBtn.disabled = false;
           findBtn.textContent = 'Find Elements';
