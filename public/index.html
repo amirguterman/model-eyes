@@ -85,51 +85,6 @@
     .ui-table td:hover {
       background-color: rgba(74, 110, 224, 0.05);
     }
-    .ui-element {
-      position: absolute;
-      border: 1px solid rgba(74, 110, 224, 0.5);
-      background-color: rgba(255, 255, 255, 0.7);
-      box-sizing: border-box;
-      transition: all 0.2s;
-      z-index: 10;
-      cursor: pointer;
-      overflow: hidden;
-    }
-    .ui-element:hover {
-      border-color: #4a6ee0;
-      background-color: rgba(74, 110, 224, 0.05);
-      z-index: 100;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    }
-    .ui-element.interactive {
-      border-color: rgba(40, 167, 69, 0.5);
-    }
-    .ui-element.interactive:hover {
-      border-color: #28a745;
-      background-color: rgba(40, 167, 69, 0.05);
-    }
-    .ui-element-label {
-      position: absolute;
-      top: 0;
-      left: 0;
-      padding: 2px 4px;
-      font-size: 10px;
-      background-color: #4a6ee0;
-      color: white;
-      border-radius: 0 0 4px 0;
-      z-index: 11;
-      opacity: 0.9;
-    }
-    .ui-element.interactive .ui-element-label {
-      background-color: #28a745;
-    }
-    .ui-element-content {
-      font-size: 10px;
-      padding: 2px;
-      margin-top: 16px; /* Space for the label */
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
     .element-details-panel {
       position: absolute;
       top: 10px;
@@ -213,6 +168,79 @@
     .show-coordinates-toggle {
       margin-left: 10px;
     }
+    
+    /* Native element styles */
+    .ui-native-element {
+      position: absolute;
+      box-sizing: border-box;
+      transition: all 0.2s;
+      z-index: 10;
+      cursor: pointer;
+      overflow: hidden;
+      font-size: 12px;
+      border-radius: 3px;
+      opacity: 0.9;
+    }
+    .ui-native-element:hover {
+      z-index: 100;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      opacity: 1;
+    }
+    
+    /* Element type specific styles */
+    .ui-native-button {
+      background-color: #4a6ee0;
+      color: white;
+      border: none;
+      text-align: center;
+      font-weight: 500;
+      padding: 5px 10px;
+    }
+    .ui-native-a {
+      color: #0066cc;
+      text-decoration: underline;
+      background: transparent;
+      border: none;
+      padding: 2px;
+    }
+    .ui-native-input {
+      border: 1px solid #ccc;
+      background-color: white;
+      padding: 5px;
+    }
+    .ui-native-select {
+      border: 1px solid #ccc;
+      background-color: white;
+      padding: 5px;
+    }
+    .ui-native-h1, .ui-native-h2, .ui-native-h3, .ui-native-h4, .ui-native-h5, .ui-native-h6 {
+      font-weight: bold;
+      margin: 0;
+      padding: 2px;
+    }
+    .ui-native-div, .ui-native-span, .ui-native-p {
+      padding: 2px;
+      background-color: rgba(200, 200, 200, 0.1);
+      border: 1px dashed #ddd;
+    }
+    .ui-native-img {
+      background-color: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+    .ui-native-table {
+      border-collapse: collapse;
+      border: 1px solid #ddd;
+    }
+    .ui-native-tr {
+      border-bottom: 1px solid #eee;
+    }
+    .ui-native-td, .ui-native-th {
+      padding: 4px;
+      border: 1px solid #eee;
+    }
   </style>
 </head>
 <body>
@@ -259,7 +287,7 @@
     <pre id="find-results">No results</pre>
     
     <h3>Visual Preview</h3>
-    <p>This shows a table-based representation of the found elements with variable-sized cells:</p>
+    <p>This shows a table-based representation with native HTML elements:</p>
     <div class="preview-controls">
       <div class="preview-zoom">
         <button class="zoom-btn" id="zoom-out">-</button>
@@ -339,7 +367,7 @@
         });
       });
       
-      // Function to create a table-based visual preview with variable-sized cells
+      // Function to create a table-based visual preview with native HTML elements
       function createTablePreview(elements) {
         // Clear the preview container
         previewContainerElem.innerHTML = '';
@@ -455,7 +483,7 @@
           return bArea - aArea; // Largest first
         });
         
-        // Add elements to the table
+        // Add elements to the table using native HTML elements
         sortedElements.forEach(element => {
           if (element.bounds) {
             // Find the cell that contains the top-left corner of the element
@@ -464,44 +492,78 @@
             const endX = findClosestIndex(xArray, element.bounds.x + element.bounds.width) - 1;
             const endY = findClosestIndex(yArray, element.bounds.y + element.bounds.height) - 1;
             
-            // Create element
-            const uiElement = document.createElement('div');
-            uiElement.className = `ui-element ${element.interactable ? 'interactive' : ''}`;
-            uiElement.dataset.id = element.id;
-            uiElement.dataset.type = element.type;
-            uiElement.dataset.startX = startX;
-            uiElement.dataset.startY = startY;
-            uiElement.dataset.endX = endX;
-            uiElement.dataset.endY = endY;
-            
             // Calculate position and size
             const left = element.bounds.x - xArray[startX];
             const top = element.bounds.y - yArray[startY];
             const width = element.bounds.width;
             const height = element.bounds.height;
             
+            // Create the appropriate HTML element based on type
+            let nativeElement;
+            
+            // Map element types to HTML elements
+            switch(element.type.toLowerCase()) {
+              case 'button':
+                nativeElement = document.createElement('button');
+                break;
+              case 'a':
+                nativeElement = document.createElement('a');
+                nativeElement.href = '#';
+                break;
+              case 'input':
+                nativeElement = document.createElement('input');
+                nativeElement.type = 'text';
+                nativeElement.placeholder = element.text || '';
+                break;
+              case 'select':
+                nativeElement = document.createElement('select');
+                break;
+              case 'h1':
+                nativeElement = document.createElement('h1');
+                break;
+              case 'h2':
+                nativeElement = document.createElement('h2');
+                break;
+              case 'h3':
+                nativeElement = document.createElement('h3');
+                break;
+              case 'img':
+                nativeElement = document.createElement('div');
+                nativeElement.textContent = '[Image]';
+                break;
+              case 'table':
+                nativeElement = document.createElement('table');
+                break;
+              case 'tr':
+                nativeElement = document.createElement('div');
+                break;
+              case 'td':
+                nativeElement = document.createElement('div');
+                break;
+              case 'span':
+                nativeElement = document.createElement('span');
+                break;
+              default:
+                nativeElement = document.createElement('div');
+            }
+            
+            // Add common classes and attributes
+            nativeElement.className = `ui-native-element ui-native-${element.type.toLowerCase()}`;
+            nativeElement.dataset.id = element.id;
+            nativeElement.dataset.type = element.type;
+            nativeElement.dataset.startX = startX;
+            nativeElement.dataset.startY = startY;
+            nativeElement.dataset.endX = endX;
+            nativeElement.dataset.endY = endY;
+            
             // Position and size the element
-            uiElement.style.left = `${left}px`;
-            uiElement.style.top = `${top}px`;
-            uiElement.style.width = `${width}px`;
-            uiElement.style.height = `${height}px`;
+            nativeElement.style.left = `${left}px`;
+            nativeElement.style.top = `${top}px`;
+            nativeElement.style.width = `${width}px`;
+            nativeElement.style.height = `${height}px`;
             
-            // Style based on element type
-            uiElement.style.backgroundColor = `${colorMap[element.type]}22`; // 22 is hex for 13% opacity
-            uiElement.style.borderColor = colorMap[element.type];
-            
-            // Add element label
-            const elementLabel = document.createElement('div');
-            elementLabel.className = 'ui-element-label';
-            elementLabel.textContent = element.type;
-            elementLabel.style.backgroundColor = colorMap[element.type];
-            uiElement.appendChild(elementLabel);
-            
-            // Add element content (truncated text)
-            if (element.text && element.text.trim()) {
-              const elementContent = document.createElement('div');
-              elementContent.className = 'ui-element-content';
-              
+            // Add text content if available
+            if (element.text && element.text.trim() && element.type.toLowerCase() !== 'input') {
               // Truncate text based on element size
               let displayText = element.text.trim();
               const maxLength = Math.max(10, Math.floor(width / 8)); // Rough estimate of characters that fit
@@ -510,12 +572,11 @@
                 displayText = displayText.substring(0, maxLength - 3) + '...';
               }
               
-              elementContent.textContent = displayText;
-              uiElement.appendChild(elementContent);
+              nativeElement.textContent = displayText;
             }
             
             // Add tooltip with element details and table coordinates
-            uiElement.title = `Type: ${element.type}
+            nativeElement.title = `Type: ${element.type}
 ID: ${element.id}
 ${element.text ? 'Text: ' + element.text : ''}
 Position: (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})
@@ -524,14 +585,15 @@ Table Cells: (${startX},${startY}) to (${endX},${endY})
 Interactable: ${element.interactable ? 'Yes' : 'No'}`;
             
             // Add click handler to highlight the element
-            uiElement.addEventListener('click', function(e) {
+            nativeElement.addEventListener('click', function(e) {
               e.stopPropagation();
+              e.preventDefault(); // Prevent default actions for links and buttons
               
               // Remove highlight from all elements
-              document.querySelectorAll('.ui-element').forEach(el => {
+              document.querySelectorAll('.ui-native-element').forEach(el => {
                 el.style.zIndex = '10';
                 el.style.boxShadow = 'none';
-                el.style.opacity = '0.7';
+                el.style.opacity = '0.9';
               });
               
               // Highlight this element
@@ -566,7 +628,7 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
             
             // Find the cell to add the element to
             const cell = table.rows[startY].cells[startX];
-            cell.appendChild(uiElement);
+            cell.appendChild(nativeElement);
           }
         });
       }
