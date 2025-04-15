@@ -71,7 +71,7 @@
     }
     .preview-element {
       position: absolute;
-      border: 1px solid rgba(74, 110, 224, 0.5);
+      border: 1px solid rgba(74, 110, 224, 0.3);
       background-color: rgba(255, 255, 255, 0.95);
       font-size: 12px;
       overflow: visible;
@@ -86,7 +86,7 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
     }
     .preview-element.interactive {
-      border-color: rgba(40, 167, 69, 0.5);
+      border-color: rgba(40, 167, 69, 0.3);
     }
     .preview-element.interactive:hover {
       border-color: #28a745;
@@ -142,6 +142,9 @@
       padding: 5px 10px;
       cursor: pointer;
     }
+    .zoom-btn:hover {
+      background-color: #e9ecef;
+    }
     .collapse-btn {
       background-color: #f8f9fa;
       border: 1px solid #dee2e6;
@@ -154,8 +157,21 @@
     .collapse-btn:hover {
       background-color: #e9ecef;
     }
-    .zoom-btn:hover {
-      background-color: #e9ecef;
+    .element-details-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      z-index: 2000;
+      font-size: 12px;
+      max-width: 300px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    .element-details-panel div {
+      margin-bottom: 5px;
     }
     .success {
       color: #28a745;
@@ -247,7 +263,6 @@
       const previewContainerElem = document.getElementById('preview-container');
       const previewStatusElem = document.getElementById('preview-status');
       
-      // Function to create a visual preview of the found elements
       // Initialize zoom level
       let zoomLevel = 1;
       
@@ -290,10 +305,6 @@
         // Hide the status
         previewStatusElem.style.display = 'none';
         
-        // Get the preview box dimensions
-        const previewBoxWidth = previewBoxElem.clientWidth - 40; // Subtract padding
-        const previewBoxHeight = 600;
-        
         // Find the bounds of all elements to calculate scaling
         let minX = Infinity;
         let minY = Infinity;
@@ -309,57 +320,46 @@
           }
         });
         
-        // Sort elements by z-index (parent elements first)
-        elements.sort((a, b) => {
-          // Sort by depth (parent elements first)
-          const aDepth = a.id.split('-').length;
-          const bDepth = b.id.split('-').length;
-          return aDepth - bDepth;
-        });
-        
         // Calculate the content dimensions
         const contentWidth = maxX - minX;
         const contentHeight = maxY - minY;
         
+        // Get the preview box dimensions
+        const previewBoxWidth = previewBoxElem.clientWidth - 40; // Subtract padding
+        const previewBoxHeight = 600;
+        
         // Calculate the scale to fit the content
         const boxScaleX = previewBoxWidth / (contentWidth || 1);
         const boxScaleY = previewBoxHeight / (contentHeight || 1);
-        const scale = Math.min(boxScaleX, boxScaleY) * 0.95; // 95% of the available space
+        const scale = Math.min(boxScaleX, boxScaleY) * 0.9; // 90% of the available space
         
-        // Set the container size based on the scaled content
-        const containerWidth = contentWidth * scale;
-        const containerHeight = contentHeight * scale;
-        previewContainerElem.style.width = `${containerWidth}px`;
-        previewContainerElem.style.minWidth = `${containerWidth}px`;
-        previewContainerElem.style.height = `${containerHeight}px`;
-        previewContainerElem.style.minHeight = `${containerHeight}px`;
+        // Create a background container that represents the page
+        const pageContainer = document.createElement('div');
+        pageContainer.style.position = 'relative';
+        pageContainer.style.width = `${contentWidth * scale}px`;
+        pageContainer.style.height = `${contentHeight * scale}px`;
+        pageContainer.style.backgroundColor = '#f8f8f8';
+        pageContainer.style.border = '1px solid #ddd';
+        pageContainer.style.borderRadius = '4px';
+        pageContainer.style.margin = '0 auto';
+        pageContainer.style.overflow = 'hidden';
+        
+        previewContainerElem.appendChild(pageContainer);
+        
+        // Sort elements by size (largest to smallest) for proper layering
+        const sortedElements = [...elements].sort((a, b) => {
+          const aArea = a.bounds ? a.bounds.width * a.bounds.height : 0;
+          const bArea = b.bounds ? b.bounds.width * b.bounds.height : 0;
+          return bArea - aArea; // Largest first
+        });
         
         // Create elements in the preview
-        elements.forEach(element => {
+        sortedElements.forEach(element => {
           if (element.bounds) {
             // Create element with appropriate class
             const previewElement = document.createElement('div');
-            // Set element class based on type and interactability
-            let className = `preview-element`;
-            if (element.interactable) {
-              className += ' interactive';
-            }
             
-            // Add type-specific classes
-            if (element.type === 'div') className += ' element-div';
-            else if (element.type === 'span') className += ' element-span';
-            else if (element.type === 'a') className += ' element-a';
-            else if (element.type === 'button') className += ' element-button';
-            else if (element.type === 'input') className += ' element-input';
-            else if (element.type === 'img') className += ' element-img';
-            else if (element.type === 'table') className += ' element-table';
-            else if (element.type === 'tr') className += ' element-tr';
-            else if (element.type === 'td') className += ' element-td';
-            else if (element.type === 'h1') className += ' element-h1';
-            
-            previewElement.className = className;
-            
-            // Set proper attributes instead of just using title
+            // Set proper data attributes
             previewElement.setAttribute('data-id', element.id);
             previewElement.setAttribute('data-type', element.type);
             previewElement.setAttribute('data-interactable', element.interactable.toString());
@@ -368,100 +368,161 @@
               previewElement.setAttribute('data-text', element.text);
             }
             
-            if (element.bounds) {
-              previewElement.setAttribute('data-x', element.bounds.x.toString());
-              previewElement.setAttribute('data-y', element.bounds.y.toString());
-              previewElement.setAttribute('data-width', element.bounds.width.toString());
-              previewElement.setAttribute('data-height', element.bounds.height.toString());
+            // Set element class based on type and interactability
+            let className = `preview-element`;
+            if (element.interactable) {
+              className += ' interactive';
             }
             
-            // Add role attribute if available
-            if (element.attributes && element.attributes.role) {
-              previewElement.setAttribute('role', element.attributes.role);
-            }
+            // Add type-specific classes
+            className += ` element-${element.type}`;
+            previewElement.className = className;
             
-            // Calculate position and size relative to the container
+            // Calculate position and size relative to the page container
             const left = (element.bounds.x - minX) * scale;
             const top = (element.bounds.y - minY) * scale;
             const width = Math.max(element.bounds.width * scale, 10); // Minimum width of 10px
             const height = Math.max(element.bounds.height * scale, 10); // Minimum height of 10px
             
+            // Apply styles based on element type
+            previewElement.style.position = 'absolute';
             previewElement.style.left = `${left}px`;
             previewElement.style.top = `${top}px`;
             previewElement.style.width = `${width}px`;
             previewElement.style.height = `${height}px`;
             
-            // Set element style based on its type
-            if (element.type === 'h1') {
-              previewElement.style.fontWeight = 'bold';
-              previewElement.style.fontSize = '18px';
-            } else if (element.type === 'a') {
-              previewElement.style.color = '#0066cc';
-              previewElement.style.textDecoration = 'underline';
-            } else if (element.type === 'button') {
-              previewElement.style.backgroundColor = '#f0f0f0';
-              previewElement.style.borderRadius = '4px';
-            } else if (element.type === 'input') {
-              previewElement.style.backgroundColor = '#ffffff';
-              previewElement.style.border = '1px solid #ccc';
-            } else if (element.type === 'table') {
-              previewElement.style.border = '1px solid #ddd';
-            } else if (element.type === 'tr') {
-              previewElement.style.borderBottom = '1px solid #eee';
-            } else if (element.type === 'td') {
-              previewElement.style.padding = '4px';
+            // Apply more accurate styling based on element type
+            switch(element.type) {
+              case 'h1':
+                previewElement.style.fontWeight = 'bold';
+                previewElement.style.fontSize = '18px';
+                previewElement.style.color = '#333';
+                previewElement.style.backgroundColor = 'transparent';
+                previewElement.style.border = 'none';
+                break;
+              case 'a':
+                previewElement.style.color = '#0066cc';
+                previewElement.style.textDecoration = 'underline';
+                previewElement.style.cursor = 'pointer';
+                previewElement.style.backgroundColor = 'transparent';
+                previewElement.style.border = 'none';
+                break;
+              case 'button':
+                previewElement.style.backgroundColor = '#4a6ee0';
+                previewElement.style.color = 'white';
+                previewElement.style.borderRadius = '4px';
+                previewElement.style.border = 'none';
+                previewElement.style.cursor = 'pointer';
+                previewElement.style.textAlign = 'center';
+                break;
+              case 'input':
+                previewElement.style.backgroundColor = '#ffffff';
+                previewElement.style.border = '1px solid #ccc';
+                previewElement.style.borderRadius = '3px';
+                break;
+              case 'table':
+                previewElement.style.border = '1px solid #ddd';
+                previewElement.style.borderCollapse = 'collapse';
+                previewElement.style.backgroundColor = '#fff';
+                break;
+              case 'tr':
+                previewElement.style.borderBottom = '1px solid #eee';
+                break;
+              case 'td':
+                previewElement.style.padding = '4px';
+                previewElement.style.textAlign = 'left';
+                break;
+              case 'div':
+                // Most divs should be transparent unless they're containers
+                if (element.bounds.width * element.bounds.height > 10000) {
+                  previewElement.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                  previewElement.style.border = '1px solid #eee';
+                  previewElement.style.borderRadius = '4px';
+                  previewElement.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                } else {
+                  previewElement.style.backgroundColor = 'transparent';
+                  previewElement.style.border = 'none';
+                }
+                break;
+              default:
+                previewElement.style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+                previewElement.style.border = '1px dashed #ccc';
             }
             
-            // Add element type label
-            const elementInfo = document.createElement('div');
-            elementInfo.className = 'preview-element-content';
-            elementInfo.textContent = element.type;
-            
-            // Add element text content if available with proper formatting
+            // Add element text content with proper formatting
             if (element.text && element.text.trim()) {
-              let elementText = document.createElement('div');
+              // Create appropriate element for text based on element type
+              let elementText;
               
-              // Format text based on element type
-              if (element.type === 'h1') {
-                elementText = document.createElement('h1');
-                elementText.style.margin = '0';
-                elementText.style.padding = '0';
-                elementText.style.fontSize = '16px';
-              } else if (element.type === 'a') {
-                elementText = document.createElement('a');
-                elementText.style.color = '#0066cc';
-                elementText.style.textDecoration = 'underline';
-              } else {
-                elementText.className = 'preview-element-text';
+              switch(element.type) {
+                case 'h1':
+                  elementText = document.createElement('h1');
+                  elementText.style.margin = '0';
+                  elementText.style.padding = '0';
+                  elementText.style.fontSize = `${Math.max(12, Math.min(16, height/2))}px`;
+                  elementText.style.color = '#333';
+                  break;
+                case 'a':
+                  elementText = document.createElement('a');
+                  elementText.style.color = '#0066cc';
+                  elementText.style.textDecoration = 'underline';
+                  elementText.style.fontSize = `${Math.max(9, Math.min(12, height/2))}px`;
+                  break;
+                case 'button':
+                  elementText = document.createElement('div');
+                  elementText.style.color = 'white';
+                  elementText.style.fontSize = `${Math.max(9, Math.min(12, height/2))}px`;
+                  elementText.style.fontWeight = 'bold';
+                  elementText.style.textAlign = 'center';
+                  elementText.style.display = 'flex';
+                  elementText.style.alignItems = 'center';
+                  elementText.style.justifyContent = 'center';
+                  elementText.style.width = '100%';
+                  elementText.style.height = '100%';
+                  break;
+                default:
+                  elementText = document.createElement('div');
+                  elementText.style.fontSize = `${Math.max(9, Math.min(12, height/2))}px`;
+                  elementText.style.color = '#333';
+                  elementText.style.overflow = 'hidden';
+                  elementText.style.textOverflow = 'ellipsis';
               }
               
-              // Truncate very long text to prevent overwhelming the preview
+              elementText.className = 'preview-element-text';
+              
+              // Format text appropriately
               let displayText = element.text;
-              if (displayText.length > 100) {
-                displayText = displayText.substring(0, 97) + '...';
+              
+              // Handle special cases for better formatting
+              if (element.type === 'td' && displayText.length > 20) {
+                // For table cells, show shorter text
+                displayText = displayText.substring(0, 20) + '...';
+              } else if (displayText.length > 50) {
+                // For general elements, limit text length
+                displayText = displayText.substring(0, 50) + '...';
               }
               
-              // Set text content
               elementText.textContent = displayText;
               
-              // Adjust font size based on element size
-              const textLength = element.text.length;
-              const area = width * height;
-              
-              if (area < 1000) {
-                elementText.style.fontSize = '9px';
-              } else if (area < 5000) {
-                elementText.style.fontSize = '10px';
-              } else if (area < 10000) {
-                elementText.style.fontSize = '11px';
-              } else {
-                elementText.style.fontSize = '12px';
-              }
+              // Add the text element
               previewElement.appendChild(elementText);
             }
             
-            // Always add the type label
-            previewElement.appendChild(elementInfo);
+            // Add a small label showing the element type (only for larger elements)
+            if (width > 30 && height > 20) {
+              const elementLabel = document.createElement('div');
+              elementLabel.className = 'preview-element-content';
+              elementLabel.textContent = element.type;
+              previewElement.appendChild(elementLabel);
+            }
+            
+            // Add tooltip with element details
+            previewElement.title = `Type: ${element.type}
+ID: ${element.id}
+${element.text ? 'Text: ' + element.text : ''}
+Position: (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})
+Size: ${Math.round(element.bounds.width)} × ${Math.round(element.bounds.height)}
+Interactable: ${element.interactable ? 'Yes' : 'No'}`;
             
             // Add click handler to highlight the element
             previewElement.addEventListener('click', function(e) {
@@ -469,9 +530,9 @@
               
               // Remove highlight from all elements
               document.querySelectorAll('.preview-element').forEach(el => {
-                el.style.zIndex = null;
-                el.style.boxShadow = null;
-                el.style.outline = null;
+                el.style.zIndex = '1';
+                el.style.boxShadow = 'none';
+                el.style.outline = 'none';
               });
               
               // Highlight this element
@@ -481,13 +542,30 @@
               
               // Show element details in console
               console.log('Element details:', element);
+              
+              // Show element details in a tooltip or info panel
+              const detailsPanel = document.createElement('div');
+              detailsPanel.className = 'element-details-panel';
+              
+              detailsPanel.innerHTML = `
+                <div><strong>Type:</strong> ${element.type}</div>
+                <div><strong>ID:</strong> ${element.id}</div>
+                ${element.text ? `<div><strong>Text:</strong> ${element.text}</div>` : ''}
+                <div><strong>Position:</strong> (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})</div>
+                <div><strong>Size:</strong> ${Math.round(element.bounds.width)} × ${Math.round(element.bounds.height)}</div>
+                <div><strong>Interactable:</strong> ${element.interactable ? 'Yes' : 'No'}</div>
+              `;
+              
+              // Remove any existing panels
+              const existingPanels = document.querySelectorAll('.element-details-panel');
+              existingPanels.forEach(panel => panel.remove());
+              
+              // Add the panel to the preview box
+              previewBoxElem.appendChild(detailsPanel);
             });
             
-            // Add minimal tooltip with just the element type and ID
-            previewElement.title = `${element.type} (${element.id})`;
-
-            // Add to the preview container
-            previewContainerElem.appendChild(previewElement);
+            // Add to the page container
+            pageContainer.appendChild(previewElement);
           }
         });
       }
