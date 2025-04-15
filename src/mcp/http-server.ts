@@ -56,6 +56,17 @@ export class ModelEyesHttpServer {
       try {
         const uiState = req.body as UIState;
         
+        // Store the original HTML for each element
+        if (uiState.elements) {
+          Object.values(uiState.elements).forEach(element => {
+            // Make sure the html property is preserved
+            if (!element.html) {
+              // If no HTML is provided, create a placeholder based on the element type
+              element.html = `<${element.type}>${element.text || ''}</${element.type}>`;
+            }
+          });
+        }
+        
         // Validate the UI state
         if (!uiState || !uiState.elements) {
           throw new Error('Invalid UI state');

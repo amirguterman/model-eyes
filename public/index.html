@@ -498,53 +498,83 @@
             const width = element.bounds.width;
             const height = element.bounds.height;
             
-            // Create the appropriate HTML element based on type
+            // Use the actual HTML from the element if available
             let nativeElement;
             
-            // Map element types to HTML elements
-            switch(element.type.toLowerCase()) {
-              case 'button':
-                nativeElement = document.createElement('button');
-                break;
-              case 'a':
-                nativeElement = document.createElement('a');
-                nativeElement.href = '#';
-                break;
-              case 'input':
-                nativeElement = document.createElement('input');
-                nativeElement.type = 'text';
-                nativeElement.placeholder = element.text || '';
-                break;
-              case 'select':
-                nativeElement = document.createElement('select');
-                break;
-              case 'h1':
-                nativeElement = document.createElement('h1');
-                break;
-              case 'h2':
-                nativeElement = document.createElement('h2');
-                break;
-              case 'h3':
-                nativeElement = document.createElement('h3');
-                break;
-              case 'img':
-                nativeElement = document.createElement('div');
-                nativeElement.textContent = '[Image]';
-                break;
-              case 'table':
-                nativeElement = document.createElement('table');
-                break;
-              case 'tr':
-                nativeElement = document.createElement('div');
-                break;
-              case 'td':
-                nativeElement = document.createElement('div');
-                break;
-              case 'span':
-                nativeElement = document.createElement('span');
-                break;
-              default:
-                nativeElement = document.createElement('div');
+            if (element.html) {
+              // Create a temporary container to parse the HTML
+              const tempContainer = document.createElement('div');
+              tempContainer.innerHTML = element.html;
+              
+              // Get the first child as our element
+              const originalElement = tempContainer.firstElementChild;
+              
+              // If parsing failed, create a fallback element
+              if (!originalElement) {
+                nativeElement = document.createElement(element.type);
+                nativeElement.textContent = element.text || '';
+              } else {
+                // Create a simplified version of the original element
+                nativeElement = document.createElement(element.type);
+                
+                // Copy relevant attributes
+                if (originalElement.hasAttribute('class')) {
+                  nativeElement.className = originalElement.getAttribute('class');
+                }
+                
+                if (originalElement.hasAttribute('style')) {
+                  nativeElement.style.cssText = originalElement.getAttribute('style');
+                }
+                
+                // Set text content
+                nativeElement.textContent = element.text || '';
+              }
+            } else {
+              // Fallback to creating elements based on type
+              switch(element.type.toLowerCase()) {
+                case 'button':
+                  nativeElement = document.createElement('button');
+                  break;
+                case 'a':
+                  nativeElement = document.createElement('a');
+                  nativeElement.href = '#';
+                  break;
+                case 'input':
+                  nativeElement = document.createElement('input');
+                  nativeElement.type = 'text';
+                  nativeElement.placeholder = element.text || '';
+                  break;
+                case 'select':
+                  nativeElement = document.createElement('select');
+                  break;
+                case 'h1':
+                  nativeElement = document.createElement('h1');
+                  break;
+                case 'h2':
+                  nativeElement = document.createElement('h2');
+                  break;
+                case 'h3':
+                  nativeElement = document.createElement('h3');
+                  break;
+                case 'img':
+                  nativeElement = document.createElement('div');
+                  nativeElement.textContent = '[Image]';
+                  break;
+                case 'table':
+                  nativeElement = document.createElement('table');
+                  break;
+                case 'tr':
+                  nativeElement = document.createElement('div');
+                  break;
+                case 'td':
+                  nativeElement = document.createElement('div');
+                  break;
+                case 'span':
+                  nativeElement = document.createElement('span');
+                  break;
+                default:
+                  nativeElement = document.createElement('div');
+              }
             }
             
             // Add common classes and attributes

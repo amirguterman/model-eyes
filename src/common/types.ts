@@ -57,6 +57,9 @@ export interface UIElement {
   
   /** Key-value pairs of relevant CSS styles */
   styles?: Record<string, string>;
+  
+  /** Original HTML of the element */
+  html?: string;
 }
 
 /**
