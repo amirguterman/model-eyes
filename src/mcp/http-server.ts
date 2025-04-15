@@ -144,7 +144,7 @@ export class ModelEyesHttpServer {
     
     this.expressApp.post('/api/find-elements', (req: Request, res: Response) => {
       try {
-        const { type, text, interactable, limit = 10 } = req.body;
+        const { type, text, interactable, visible, limit = 10 } = req.body;
         
         // Check if we have a current state
         if (!this.currentState) {
@@ -167,6 +167,20 @@ export class ModelEyesHttpServer {
             // Match interactable if specified
             if (interactable !== undefined && element.interactable !== interactable) {
               return false;
+            }
+            
+            // Match visibility if specified
+            if (visible === true) {
+              // Check if element has style attribute with display: none or visibility: hidden
+              if (element.attributes &&
+                  ((element.attributes.style &&
+                    (element.attributes.style.includes('display: none') ||
+                     element.attributes.style.includes('visibility: hidden'))) ||
+                   element.attributes.hidden === 'true' ||
+                   element.attributes.hidden === '' ||
+                   element.attributes['aria-hidden'] === 'true')) {
+                return false;
+              }
             }
             
             return true;

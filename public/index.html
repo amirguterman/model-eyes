@@ -171,8 +171,10 @@
   <div class="card">
     <h2>Current UI State</h2>
     <p>This shows the current UI state captured by the Chrome extension.</p>
-    <button id="refresh-btn">Refresh</button>
-    <button class="collapse-btn" id="toggle-ui-state">Collapse/Expand JSON</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <button id="refresh-btn">Refresh</button>
+      <button class="collapse-btn" id="toggle-ui-state">Collapse JSON</button>
+    </div>
     <div class="status" id="status" style="display: none;"></div>
     <pre id="ui-state">No UI state available</pre>
   </div>
@@ -189,11 +191,21 @@
       <input type="text" id="element-text" placeholder="Text content to match">
     </div>
     <div>
-      <label for="interactable">Interactable Only:</label>
-      <input type="checkbox" id="interactable">
+      <div style="display: flex; gap: 20px;">
+        <div>
+          <label for="interactable">Interactable Only:</label>
+          <input type="checkbox" id="interactable">
+        </div>
+        <div>
+          <label for="visible">Visible Only:</label>
+          <input type="checkbox" id="visible" checked>
+        </div>
+      </div>
     </div>
-    <button id="find-btn">Find Elements</button>
-    <button class="collapse-btn" id="toggle-find-results">Collapse/Expand JSON</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <button id="find-btn">Find Elements</button>
+      <button class="collapse-btn" id="toggle-find-results">Collapse JSON</button>
+    </div>
     <pre id="find-results">No results</pre>
     
     <h3>Visual Preview</h3>
@@ -548,6 +560,7 @@
           const type = document.getElementById('element-type').value;
           const text = document.getElementById('element-text').value;
           const interactable = document.getElementById('interactable').checked;
+          const visible = document.getElementById('visible').checked;
           
           const response = await fetch('/api/find-elements', {
             method: 'POST',
@@ -557,7 +570,8 @@
             body: JSON.stringify({
               type: type || undefined,
               text: text || undefined,
-              interactable: interactable || undefined
+              interactable: interactable || undefined,
+              visible: visible || undefined
             })
           });
           
