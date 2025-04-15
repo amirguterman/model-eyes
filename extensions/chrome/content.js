@@ -19,7 +19,7 @@ chrome.storage.local.get(['serverUrl'], function(result) {
 
 /**
  * Check if an element is visible
- * 
+ *
  * @param {Element} element - DOM element to check
  * @returns {boolean} Whether the element is visible
  */
@@ -42,8 +42,27 @@ function isElementVisible(element) {
   }
   
   // Check if element is outside the viewport (completely offscreen)
-  if (rect.right < 0 || rect.bottom < 0 || 
+  if (rect.right < 0 || rect.bottom < 0 ||
       rect.left > window.innerWidth || rect.top > window.innerHeight) {
+    return false;
+  }
+  
+  // If this is a container element (like div, section, etc.), check if any children are visible
+  const tagName = element.tagName.toLowerCase();
+  if (['div', 'section', 'article', 'main', 'aside', 'header', 'footer', 'nav'].includes(tagName)) {
+    // If it has no children, rely on its own visibility
+    if (element.children.length === 0) {
+      return true;
+    }
+    
+    // If it has children, check if any of them are visible
+    for (const child of element.children) {
+      if (isElementVisible(child)) {
+        return true;
+      }
+    }
+    
+    // If none of the children are visible, the container is effectively not visible
     return false;
   }
   
@@ -215,6 +234,13 @@ function isElementInteractable(element) {
   const style = window.getComputedStyle(element);
   if (style.cursor === 'pointer') {
     return true;
+  }
+  
+  // Check if any child elements are interactable
+  for (const child of element.children) {
+    if (isElementInteractable(child)) {
+      return true;
+    }
   }
   
   return false;
