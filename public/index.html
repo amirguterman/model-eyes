@@ -70,34 +70,20 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       overflow: auto;
     }
-    .grid-container {
-      position: absolute;
-      top: 0;
-      left: 0;
+    .ui-table {
+      border-collapse: collapse;
       width: 100%;
       height: 100%;
-      pointer-events: none;
-      z-index: 5;
+      table-layout: fixed;
     }
-    .grid-line {
-      position: absolute;
-      background-color: rgba(200, 200, 200, 0.2);
-      pointer-events: none;
+    .ui-table td {
+      border: 1px dashed #eee;
+      padding: 0;
+      position: relative;
+      overflow: visible;
     }
-    .grid-line-x {
-      width: 1px;
-      height: 100%;
-    }
-    .grid-line-y {
-      height: 1px;
-      width: 100%;
-    }
-    .grid-coordinate {
-      position: absolute;
-      font-size: 8px;
-      color: rgba(100, 100, 100, 0.5);
-      pointer-events: none;
-      z-index: 6;
+    .ui-table td:hover {
+      background-color: rgba(74, 110, 224, 0.05);
     }
     .ui-element {
       position: absolute;
@@ -216,7 +202,15 @@
       margin-right: 5px;
       border-radius: 3px;
     }
-    .grid-toggle {
+    .table-coordinates {
+      position: absolute;
+      font-size: 8px;
+      color: #999;
+      pointer-events: none;
+      top: 2px;
+      left: 2px;
+    }
+    .show-coordinates-toggle {
       margin-left: 10px;
     }
   </style>
@@ -265,7 +259,7 @@
     <pre id="find-results">No results</pre>
     
     <h3>Visual Preview</h3>
-    <p>This shows a visual representation of the found elements with their original positioning:</p>
+    <p>This shows a table-based representation of the found elements with variable-sized cells:</p>
     <div class="preview-controls">
       <div class="preview-zoom">
         <button class="zoom-btn" id="zoom-out">-</button>
@@ -273,18 +267,9 @@
         <button class="zoom-btn" id="zoom-in">+</button>
       </div>
       <button class="zoom-btn" id="reset-view">Reset View</button>
-      <div>
-        <label for="grid-size">Grid Size:</label>
-        <select id="grid-size">
-          <option value="10">10px</option>
-          <option value="20">20px</option>
-          <option value="50" selected>50px</option>
-          <option value="100">100px</option>
-        </select>
-      </div>
-      <div class="grid-toggle">
-        <label for="show-grid">Show Grid:</label>
-        <input type="checkbox" id="show-grid" checked>
+      <div class="show-coordinates-toggle">
+        <label for="show-coordinates">Show Coordinates:</label>
+        <input type="checkbox" id="show-coordinates" checked>
       </div>
     </div>
     <div class="preview-box" id="preview-box">
@@ -316,8 +301,7 @@
       const previewBoxElem = document.getElementById('preview-box');
       const previewContainerElem = document.getElementById('preview-container');
       const previewStatusElem = document.getElementById('preview-status');
-      const gridSizeSelect = document.getElementById('grid-size');
-      const showGridCheckbox = document.getElementById('show-grid');
+      const showCoordinatesCheckbox = document.getElementById('show-coordinates');
       const gridLegendElem = document.getElementById('grid-legend');
       
       // Initialize zoom level
@@ -347,22 +331,16 @@
         container.style.transformOrigin = 'top left';
       }
       
-      // Grid size change handler
-      gridSizeSelect.addEventListener('change', function() {
-        const elements = JSON.parse(findResultsElem.textContent).elements || [];
-        createVisualPreview(elements);
+      // Show coordinates change handler
+      showCoordinatesCheckbox.addEventListener('change', function() {
+        const coordinates = document.querySelectorAll('.table-coordinates');
+        coordinates.forEach(coord => {
+          coord.style.display = this.checked ? 'block' : 'none';
+        });
       });
       
-      // Show grid change handler
-      showGridCheckbox.addEventListener('change', function() {
-        const gridContainer = document.querySelector('.grid-container');
-        if (gridContainer) {
-          gridContainer.style.display = this.checked ? 'block' : 'none';
-        }
-      });
-      
-      // Function to create a visual preview with absolute positioning and grid overlay
-      function createVisualPreview(elements) {
+      // Function to create a table-based visual preview with variable-sized cells
+      function createTablePreview(elements) {
         // Clear the preview container
         previewContainerElem.innerHTML = '';
         gridLegendElem.innerHTML = '';
@@ -377,30 +355,6 @@
         
         // Hide the status
         previewStatusElem.style.display = 'none';
-        
-        // Find the bounds of all elements to calculate container size
-        let minX = Infinity;
-        let minY = Infinity;
-        let maxX = 0;
-        let maxY = 0;
-        
-        elements.forEach(element => {
-          if (element.bounds) {
-            minX = Math.min(minX, element.bounds.x);
-            minY = Math.min(minY, element.bounds.y);
-            maxX = Math.max(maxX, element.bounds.x + element.bounds.width);
-            maxY = Math.max(maxY, element.bounds.y + element.bounds.height);
-          }
-        });
-        
-        // Calculate container dimensions
-        const contentWidth = maxX - minX;
-        const contentHeight = maxY - minY;
-        
-        // Set container size
-        previewContainerElem.style.width = `${contentWidth}px`;
-        previewContainerElem.style.height = `${contentHeight}px`;
-        previewContainerElem.style.position = 'relative';
         
         // Create a color map for element types
         const elementTypes = [...new Set(elements.map(el => el.type))];
@@ -431,49 +385,68 @@
           gridLegendElem.appendChild(legendItem);
         });
         
-        // Create grid overlay
-        const gridSize = parseInt(gridSizeSelect.value, 10);
-        const gridContainer = document.createElement('div');
-        gridContainer.className = 'grid-container';
-        gridContainer.style.display = showGridCheckbox.checked ? 'block' : 'none';
+        // Find unique x and y positions to create rows and columns
+        const xPositions = new Set();
+        const yPositions = new Set();
         
-        // Create vertical grid lines
-        for (let x = 0; x <= contentWidth; x += gridSize) {
-          const gridLine = document.createElement('div');
-          gridLine.className = 'grid-line grid-line-x';
-          gridLine.style.left = `${x}px`;
-          gridContainer.appendChild(gridLine);
-          
-          // Add coordinate labels at intervals
-          if (x % (gridSize * 5) === 0) {
-            const coordinate = document.createElement('div');
-            coordinate.className = 'grid-coordinate';
-            coordinate.textContent = x;
-            coordinate.style.left = `${x + 2}px`;
-            coordinate.style.top = '2px';
-            gridContainer.appendChild(coordinate);
+        elements.forEach(element => {
+          if (element.bounds) {
+            // Add start and end positions
+            xPositions.add(element.bounds.x);
+            xPositions.add(element.bounds.x + element.bounds.width);
+            yPositions.add(element.bounds.y);
+            yPositions.add(element.bounds.y + element.bounds.height);
           }
+        });
+        
+        // Convert to sorted arrays
+        const xArray = Array.from(xPositions).sort((a, b) => a - b);
+        const yArray = Array.from(yPositions).sort((a, b) => a - b);
+        
+        // Create a table with variable-sized cells
+        const table = document.createElement('table');
+        table.className = 'ui-table';
+        
+        // Create table body
+        const tbody = document.createElement('tbody');
+        
+        // Create rows and cells
+        for (let i = 0; i < yArray.length - 1; i++) {
+          const row = document.createElement('tr');
+          const rowHeight = yArray[i + 1] - yArray[i];
+          
+          for (let j = 0; j < xArray.length - 1; j++) {
+            const cell = document.createElement('td');
+            const cellWidth = xArray[j + 1] - xArray[j];
+            
+            // Set cell dimensions
+            cell.style.width = `${cellWidth}px`;
+            cell.style.height = `${rowHeight}px`;
+            
+            // Add cell coordinates if enabled
+            if (showCoordinatesCheckbox.checked) {
+              const coordinates = document.createElement('div');
+              coordinates.className = 'table-coordinates';
+              coordinates.textContent = `(${j},${i})`;
+              cell.appendChild(coordinates);
+            }
+            
+            // Store cell coordinates as data attributes
+            cell.dataset.x = j;
+            cell.dataset.y = i;
+            cell.dataset.realX = xArray[j];
+            cell.dataset.realY = yArray[i];
+            cell.dataset.width = cellWidth;
+            cell.dataset.height = rowHeight;
+            
+            row.appendChild(cell);
+          }
+          
+          tbody.appendChild(row);
         }
         
-        // Create horizontal grid lines
-        for (let y = 0; y <= contentHeight; y += gridSize) {
-          const gridLine = document.createElement('div');
-          gridLine.className = 'grid-line grid-line-y';
-          gridLine.style.top = `${y}px`;
-          gridContainer.appendChild(gridLine);
-          
-          // Add coordinate labels at intervals
-          if (y % (gridSize * 5) === 0) {
-            const coordinate = document.createElement('div');
-            coordinate.className = 'grid-coordinate';
-            coordinate.textContent = y;
-            coordinate.style.top = `${y + 2}px`;
-            coordinate.style.left = '2px';
-            gridContainer.appendChild(coordinate);
-          }
-        }
-        
-        previewContainerElem.appendChild(gridContainer);
+        table.appendChild(tbody);
+        previewContainerElem.appendChild(table);
         
         // Sort elements by size (largest to smallest) for proper layering
         const sortedElements = [...elements].sort((a, b) => {
@@ -482,22 +455,32 @@
           return bArea - aArea; // Largest first
         });
         
-        // Add elements with absolute positioning
+        // Add elements to the table
         sortedElements.forEach(element => {
           if (element.bounds) {
-            // Calculate position relative to container (offset by minX, minY)
-            const left = element.bounds.x - minX;
-            const top = element.bounds.y - minY;
-            const width = element.bounds.width;
-            const height = element.bounds.height;
+            // Find the cell that contains the top-left corner of the element
+            const startX = findClosestIndex(xArray, element.bounds.x);
+            const startY = findClosestIndex(yArray, element.bounds.y);
+            const endX = findClosestIndex(xArray, element.bounds.x + element.bounds.width) - 1;
+            const endY = findClosestIndex(yArray, element.bounds.y + element.bounds.height) - 1;
             
             // Create element
             const uiElement = document.createElement('div');
             uiElement.className = `ui-element ${element.interactable ? 'interactive' : ''}`;
             uiElement.dataset.id = element.id;
             uiElement.dataset.type = element.type;
+            uiElement.dataset.startX = startX;
+            uiElement.dataset.startY = startY;
+            uiElement.dataset.endX = endX;
+            uiElement.dataset.endY = endY;
             
-            // Position and size the element using absolute positioning
+            // Calculate position and size
+            const left = element.bounds.x - xArray[startX];
+            const top = element.bounds.y - yArray[startY];
+            const width = element.bounds.width;
+            const height = element.bounds.height;
+            
+            // Position and size the element
             uiElement.style.left = `${left}px`;
             uiElement.style.top = `${top}px`;
             uiElement.style.width = `${width}px`;
@@ -531,18 +514,13 @@
               uiElement.appendChild(elementContent);
             }
             
-            // Add tooltip with element details and grid coordinates
-            const gridX = Math.floor(left / gridSize);
-            const gridY = Math.floor(top / gridSize);
-            const gridEndX = Math.ceil((left + width) / gridSize);
-            const gridEndY = Math.ceil((top + height) / gridSize);
-            
+            // Add tooltip with element details and table coordinates
             uiElement.title = `Type: ${element.type}
 ID: ${element.id}
 ${element.text ? 'Text: ' + element.text : ''}
 Position: (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})
 Size: ${Math.round(width)} × ${Math.round(height)}
-Grid: (${gridX},${gridY}) to (${gridEndX-1},${gridEndY-1})
+Table Cells: (${startX},${startY}) to (${endX},${endY})
 Interactable: ${element.interactable ? 'Yes' : 'No'}`;
             
             // Add click handler to highlight the element
@@ -574,7 +552,7 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
                 ${element.text ? `<div><strong>Text:</strong> ${element.text}</div>` : ''}
                 <div><strong>Position:</strong> (${Math.round(element.bounds.x)}, ${Math.round(element.bounds.y)})</div>
                 <div><strong>Size:</strong> ${Math.round(width)} × ${Math.round(height)}</div>
-                <div><strong>Grid Cells:</strong> (${gridX},${gridY}) to (${gridEndX-1},${gridEndY-1})</div>
+                <div><strong>Table Cells:</strong> (${startX},${startY}) to (${endX},${endY})</div>
                 <div><strong>Interactable:</strong> ${element.interactable ? 'Yes' : 'No'}</div>
               `;
               
@@ -586,10 +564,33 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
               previewBoxElem.appendChild(detailsPanel);
             });
             
-            // Add to the preview container
-            previewContainerElem.appendChild(uiElement);
+            // Find the cell to add the element to
+            const cell = table.rows[startY].cells[startX];
+            cell.appendChild(uiElement);
           }
         });
+      }
+      
+      // Helper function to find the closest index in a sorted array
+      function findClosestIndex(arr, value) {
+        let low = 0;
+        let high = arr.length - 1;
+        
+        while (low <= high) {
+          const mid = Math.floor((low + high) / 2);
+          
+          if (arr[mid] === value) {
+            return mid;
+          } else if (arr[mid] < value) {
+            low = mid + 1;
+          } else {
+            high = mid - 1;
+          }
+        }
+        
+        // If we get here, low is the insertion point
+        // We want the index where the value would be inserted
+        return low;
       }
       
       // Toggle JSON collapse/expand
@@ -685,7 +686,7 @@ Interactable: ${element.interactable ? 'Yes' : 'No'}`;
           findResultsElem.textContent = JSON.stringify(data, null, 2);
           
           // Create visual preview of the found elements
-          createVisualPreview(data.elements);
+          createTablePreview(data.elements);
         } catch (error) {
           // Show error message
           findResultsElem.textContent = `Error: ${error.message}`;
