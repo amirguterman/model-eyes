@@ -319,6 +319,23 @@ export class ModelEyesHttpServer {
         continue;
       }
       
+      // Skip elements that are hidden via CSS or attributes
+      if (element.attributes) {
+        // Check style attribute for display: none or visibility: hidden
+        if (element.attributes.style &&
+            (element.attributes.style.includes('display: none') ||
+             element.attributes.style.includes('visibility: hidden'))) {
+          continue;
+        }
+        
+        // Check hidden attribute
+        if (element.attributes.hidden === 'true' ||
+            element.attributes.hidden === '' ||
+            element.attributes['aria-hidden'] === 'true') {
+          continue;
+        }
+      }
+      
       // Skip elements that are too small (likely decorative)
       if (element.bounds.width < 5 || element.bounds.height < 5) {
         continue;

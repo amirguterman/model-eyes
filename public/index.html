@@ -142,6 +142,18 @@
       padding: 5px 10px;
       cursor: pointer;
     }
+    .collapse-btn {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      display: inline-block;
+    }
+    .collapse-btn:hover {
+      background-color: #e9ecef;
+    }
     .zoom-btn:hover {
       background-color: #e9ecef;
     }
@@ -160,6 +172,7 @@
     <h2>Current UI State</h2>
     <p>This shows the current UI state captured by the Chrome extension.</p>
     <button id="refresh-btn">Refresh</button>
+    <button class="collapse-btn" id="toggle-ui-state">Collapse/Expand JSON</button>
     <div class="status" id="status" style="display: none;"></div>
     <pre id="ui-state">No UI state available</pre>
   </div>
@@ -180,6 +193,7 @@
       <input type="checkbox" id="interactable">
     </div>
     <button id="find-btn">Find Elements</button>
+    <button class="collapse-btn" id="toggle-find-results">Collapse/Expand JSON</button>
     <pre id="find-results">No results</pre>
     
     <h3>Visual Preview</h3>
@@ -394,6 +408,7 @@
             // Add element text content if available with proper formatting
             if (element.text && element.text.trim()) {
               let elementText = document.createElement('div');
+              
               // Format text based on element type
               if (element.type === 'h1') {
                 elementText = document.createElement('h1');
@@ -407,8 +422,15 @@
               } else {
                 elementText.className = 'preview-element-text';
               }
+              
+              // Truncate very long text to prevent overwhelming the preview
+              let displayText = element.text;
+              if (displayText.length > 100) {
+                displayText = displayText.substring(0, 97) + '...';
+              }
+              
               // Set text content
-              elementText.textContent = element.text;
+              elementText.textContent = displayText;
               
               // Adjust font size based on element size
               const textLength = element.text.length;
@@ -457,6 +479,29 @@
           }
         });
       }
+      
+      // Toggle JSON collapse/expand
+      document.getElementById('toggle-ui-state').addEventListener('click', function() {
+        const uiStateElem = document.getElementById('ui-state');
+        if (uiStateElem.style.display === 'none') {
+          uiStateElem.style.display = 'block';
+          this.textContent = 'Collapse JSON';
+        } else {
+          uiStateElem.style.display = 'none';
+          this.textContent = 'Expand JSON';
+        }
+      });
+      
+      document.getElementById('toggle-find-results').addEventListener('click', function() {
+        const findResultsElem = document.getElementById('find-results');
+        if (findResultsElem.style.display === 'none') {
+          findResultsElem.style.display = 'block';
+          this.textContent = 'Collapse JSON';
+        } else {
+          findResultsElem.style.display = 'none';
+          this.textContent = 'Expand JSON';
+        }
+      });
       
       // Refresh UI state
       refreshBtn.addEventListener('click', async function() {

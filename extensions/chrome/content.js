@@ -32,6 +32,39 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 /**
+ * Check if an element is visible
+ *
+ * @param {Element} element - DOM element to check
+ * @returns {boolean} Whether the element is visible
+ */
+function isElementVisible(element) {
+  // Check if element has zero dimensions
+  const rect = element.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    return false;
+  }
+  
+  // Check if element has display: none or visibility: hidden
+  const style = window.getComputedStyle(element);
+  if (style.display === 'none' || style.visibility === 'hidden') {
+    return false;
+  }
+  
+  // Check if element has hidden attribute
+  if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
+    return false;
+  }
+  
+  // Check if element is outside the viewport (completely offscreen)
+  if (rect.right < 0 || rect.bottom < 0 ||
+      rect.left > window.innerWidth || rect.top > window.innerHeight) {
+    return false;
+  }
+  
+  return true;
+}
+
+/**
  * Highlight an element on the page
  * 
  * @param {string} elementId - ID of the element to highlight
@@ -78,7 +111,10 @@ function highlightElement(elementId) {
  * @returns {boolean} Whether the element is relevant
  */
 function isRelevantElement(element) {
-  // Skip invisible elements
+  // Skip elements that are not visible
+  if (!isElementVisible(element)) {
+    return false;
+  }
   if (!isElementVisible(element)) {
     return false;
   }
