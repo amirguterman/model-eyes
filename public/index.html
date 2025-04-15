@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModelEyes HTTP Server Demo</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    h1 {
+      color: #4a6ee0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    .card {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      margin-top: 0;
+      color: #4a6ee0;
+    }
+    pre {
+      background-color: #f1f1f1;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+    button {
+      background-color: #4a6ee0;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    button:hover {
+      background-color: #3a5bbf;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+    }
+    .success {
+      color: #28a745;
+    }
+    .error {
+      color: #dc3545;
+    }
+  </style>
+</head>
+<body>
+  <h1>ModelEyes HTTP Server Demo</h1>
+  
+  <div class="card">
+    <h2>Current UI State</h2>
+    <p>This shows the current UI state captured by the Chrome extension.</p>
+    <button id="refresh-btn">Refresh</button>
+    <div class="status" id="status" style="display: none;"></div>
+    <pre id="ui-state">No UI state available</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Find Elements</h2>
+    <p>Find elements in the current UI state based on criteria.</p>
+    <div>
+      <label for="element-type">Element Type:</label>
+      <input type="text" id="element-type" placeholder="e.g., button, input, a">
+    </div>
+    <div>
+      <label for="element-text">Element Text:</label>
+      <input type="text" id="element-text" placeholder="Text content to match">
+    </div>
+    <div>
+      <label for="interactable">Interactable Only:</label>
+      <input type="checkbox" id="interactable">
+    </div>
+    <button id="find-btn">Find Elements</button>
+    <pre id="find-results">No results</pre>
+  </div>
+  
+  <div class="card">
+    <h2>Chrome Extension</h2>
+    <p>To use this demo with the Chrome extension:</p>
+    <ol>
+      <li>Install the ModelEyes Chrome extension</li>
+      <li>Open the extension popup</li>
+      <li>Set the server URL to <code>http://localhost:3000</code></li>
+      <li>Click "Capture UI State"</li>
+      <li>Return to this page and click "Refresh" to see the captured state</li>
+    </ol>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const refreshBtn = document.getElementById('refresh-btn');
+      const uiStateElem = document.getElementById('ui-state');
+      const statusElem = document.getElementById('status');
+      const findBtn = document.getElementById('find-btn');
+      const findResultsElem = document.getElementById('find-results');
+      
+      // Refresh UI state
+      refreshBtn.addEventListener('click', async function() {
+        try {
+          statusElem.style.display = 'none';
+          refreshBtn.disabled = true;
+          refreshBtn.textContent = 'Loading...';
+          
+          const response = await fetch('/api/ui-state');
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Format and display the UI state
+          uiStateElem.textContent = JSON.stringify(data, null, 2);
+          
+          // Show success message
+          statusElem.className = 'status success';
+          statusElem.textContent = `Successfully loaded UI state with ${Object.keys(data.elements).length} elements`;
+          statusElem.style.display = 'block';
+        } catch (error) {
+          // Show error message
+          statusElem.className = 'status error';
+          statusElem.textContent = `Error: ${error.message}`;
+          statusElem.style.display = 'block';
+          
+          // Clear UI state
+          uiStateElem.textContent = 'No UI state available';
+        } finally {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = 'Refresh';
+        }
+      });
+      
+      // Find elements
+      findBtn.addEventListener('click', async function() {
+        try {
+          findBtn.disabled = true;
+          findBtn.textContent = 'Searching...';
+          
+          const type = document.getElementById('element-type').value;
+          const text = document.getElementById('element-text').value;
+          const interactable = document.getElementById('interactable').checked;
+          
+          const response = await fetch('/api/find-elements', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              type: type || undefined,
+              text: text || undefined,
+              interactable: interactable || undefined
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          // Format and display the results
+          findResultsElem.textContent = JSON.stringify(data, null, 2);
+        } catch (error) {
+          // Show error message
+          findResultsElem.textContent = `Error: ${error.message}`;
+        } finally {
+          findBtn.disabled = false;
+          findBtn.textContent = 'Find Elements';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

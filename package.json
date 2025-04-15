@@ -23,7 +23,8 @@
     "start:web-example": "parcel examples/web-example.html",
     "build:web-example": "parcel build examples/web-example.html",
     "start:mcp-server": "ts-node src/mcp/cli.ts",
-    "start:mcp-example": "ts-node examples/mcp-example.ts"
+    "start:mcp-example": "ts-node examples/mcp-example.ts",
+    "start:http-server": "ts-node src/mcp/http-cli.ts"
   },
   "keywords": [
     "mcp",
@@ -37,9 +38,13 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.9.0",
     "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
     "@types/jest": "^29.5.10",
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.7",
