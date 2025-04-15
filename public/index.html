@@ -526,8 +526,47 @@
                   nativeElement.style.cssText = originalElement.getAttribute('style');
                 }
                 
+                // Extract text content from nested elements
+                let textContent = '';
+                
+                // Extract text from nested elements for various element types
+                const elementType = element.type.toLowerCase();
+                
+                // Look for span elements inside the element
+                const spans = originalElement.querySelectorAll('span');
+                if (spans.length > 0) {
+                  // Combine text from all spans
+                  spans.forEach(span => {
+                    if (span.textContent && span.textContent.trim()) {
+                      textContent += (textContent ? ' ' : '') + span.textContent.trim();
+                    }
+                  });
+                }
+                
+                // For links and buttons, also look for div elements with text
+                if (elementType === 'button' || elementType === 'a' || elementType === 'div') {
+                  const divs = originalElement.querySelectorAll('div');
+                  divs.forEach(div => {
+                    // Only use text directly in the div, not from its children
+                    const directText = Array.from(div.childNodes)
+                      .filter(node => node.nodeType === Node.TEXT_NODE)
+                      .map(node => node.textContent.trim())
+                      .filter(text => text.length > 0)
+                      .join(' ');
+                    
+                    if (directText) {
+                      textContent += (textContent ? ' ' : '') + directText;
+                    }
+                  });
+                }
+                
+                // If we couldn't extract text from nested elements, use the element's text
+                if (!textContent) {
+                  textContent = element.text || '';
+                }
+                
                 // Set text content
-                nativeElement.textContent = element.text || '';
+                nativeElement.textContent = textContent;
               }
             } else {
               // Fallback to creating elements based on type
